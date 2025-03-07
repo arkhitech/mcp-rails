@@ -4,6 +4,8 @@
 
 `mcp-rails` is a Ruby on Rails gem that builds on top of the `mcp-rb` library to seamlessly integrate MCP (Model Context Protocol) servers into your Rails application. It enhances Rails routes by allowing you to tag them with MCP-specific metadata and generates a valid Ruby MCP server (in `tmp/server.rb`) that LLM agents, such as Goose, can connect to. Additionally, it provides a powerful way to define and manage strong parameters in your controllers, which doubles as both MCP server configuration and Rails strong parameter enforcement.
 
+This was inspired during the creation of [Gaggle](https://github.com/Tonksthebear/gaggle).
+
 ---
 
 ## Features
@@ -21,6 +23,9 @@ Add this line to your application's `Gemfile`:
 
 ```ruby
 gem 'mcp-rails', git: 'https://github.com/Tonksthebear/mcp-rails'
+
+# Temporary update to mcp-rb
+gem 'mcp-rb', git: 'https://github.com/Tonksthebear/mcp-rb', branch: "nested-arguments"'
 ```
 
 Then run:
@@ -63,7 +68,7 @@ class ChannelsController < ApplicationController
   permitted_params_for :create do
     param :channel, required: true do
       param :name, type: :string, example: "Channel Name", required: true
-      param :goose_ids, type: :array, example: ["1", "2"]
+      param :user_ids, type: :array, example: ["1", "2"]
     end
   end
 
@@ -76,6 +81,11 @@ class ChannelsController < ApplicationController
     end
   end
 end
+```
+
+The LLM will now provide the exact parameters you're used to with default rails routes, inluding the nesting of resources. For example, the LLM will create a channel with the following params
+```
+  { channel: { name: "Channel Name", user_ids: ["1", "2"] } }
 ```
 
 - **MCP Server**: The generated `tmp/server.rb` will include these parameters, making them available to LLM agents.
