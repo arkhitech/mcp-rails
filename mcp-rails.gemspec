@@ -13,7 +13,8 @@ Gem::Specification.new do |spec|
   spec.metadata["source_code_uri"] = "https://github.com/Tonksthebear/mcp-rails"
   spec.metadata["changelog_uri"] = "https://github.com/Tonksthebear/mcp-rails/CHANGELOG.md"
 
-  spec.add_dependency "mcp-rb", git: "https://github.com/Tonksthebear/mcp-rb", branch: "nested-arguments"
+  spec.add_dependency "mcp-rb"
+  spec.add_dependency "httparty"
   spec.add_development_dependency "appraisal"
 
   spec.files = Dir.chdir(File.expand_path(__dir__)) do
