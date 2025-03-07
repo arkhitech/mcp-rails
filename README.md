@@ -106,6 +106,19 @@ goose session --with-extension "ruby path_to/tmp/server.rb"
 
 ---
 
+## Bypassing CSRF Protection
+
+The MCP server generates new HTTP requests on the fly. In standard Rails applications, this is protected by a CSRF (Cross-Site Request Forgery) key that is provided to the client during normal interactions. Since we can't leverage this, `mcp-rails` will generate a unique key to bypass this protection. This is a rudementary way to provide protection and should not be depended upon in production. As such, the gem will not automatically skip this protection on your behalf. You will have to add the following to your `ApplicationController`:
+
+```ruby
+# app/controllers/application_controller.rb
+class ApplicationController < ActionController::Base
+    skip_before_action :verify_authenticity_token, if: :mcp_invocation?
+end
+```
+
+The server adds a `X-Bypass-CSRF` header to all requests. This token gets regenerated and re-applied every time the server is generated. The key is stored in `/tmp/mcp/bypass_key.txt`
+
 ## Example
 
 ### Routes
