@@ -45,7 +45,7 @@ module Mcp
         routes.map do |route|
           app = route.app.app
 
-          if app.respond_to?(:routes) && app < Rails::Engine
+          if app.respond_to?(:routes) && app < ::Rails::Engine
             new_prefix = [ prefix, route.path.spec.to_s ].join
             collect_routes(app.app.routes.routes, new_prefix)
           else
