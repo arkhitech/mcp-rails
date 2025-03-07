@@ -14,6 +14,7 @@ This was inspired during the creation of [Gaggle](https://github.com/Tonksthebea
 - **Automatic MCP Server Generation**: Generates a Ruby MCP server in `tmp/server.rb` for LLM agents to interact with your application.
 - **Parameter Definition**: Define permitted parameters in controllers with rich metadata (e.g., types, examples, required flags) that are used for both MCP server generation and Rails strong parameters.
 - **HTTP Bridge for LLM Agents**: Generates a ruby based MCP server to interact with your application through HTTP requests, ensuring LLM agents follow the same paths as human users.
+- **Environment Variable Integration**: Automatically includes specified environment variables in MCP tool calls.
 
 ---
 
@@ -39,6 +40,57 @@ Ensure you also have the `mcp-rb` gem installed, as `mcp-rails` depends on it:
 ```ruby
 gem 'mcp-rb'
 ```
+
+---
+
+## Configuration
+
+MCP-Rails can be configured in an initializer file. Create `config/initializers/mcp_rails.rb`:
+
+```ruby
+MCP::Rails.configure do |config|
+  # Server Configuration
+  config.server_name = "my-app-server"      # Default: 'mcp-server'
+  config.server_version = "2.0.0"           # Default: '1.0.0'
+  
+  # Output Configuration
+  config.output_directory = Rails.root.join("tmp/mcp")  # Default: Rails.root.join('tmp', 'mcp')
+  config.bypass_key_path = Rails.root.join("tmp/mcp/bypass_key.txt")  # Default: Rails.root.join('tmp', 'mcp', 'bypass_key.txt')
+  
+  # Environment Variables
+  config.env_vars = ["API_KEY", "ORGANIZATION_ID"]  # Default: ['API_KEY', 'ORGANIZATION_ID']
+  
+  # Base URL Configuration
+  config.base_url = "http://localhost:3000"  # Default: Uses action_mailer.default_url_options
+end
+```
+
+### Environment Variables
+
+The `env_vars` configuration option specifies which environment variables should be automatically included in every MCP tool call. For example, if you configure:
+
+```ruby
+config.env_vars = ["API_KEY", "ORGANIZATION_ID"]
+```
+
+Then every MCP tool call will automatically include these environment variables as parameters:
+
+```ruby
+# If ENV['API_KEY'] = 'xyz123' and ENV['ORGANIZATION_ID'] = '456'
+# A tool call like:
+create_channel(name: "General")
+# Will effectively become:
+create_channel(name: "General", api_key: "xyz123", organization_id: "456")
+```
+
+This is useful for automatically including authentication tokens, organization IDs, or other environment-specific values in your MCP tool calls without explicitly defining them in your controller parameters.
+
+### Base URL
+
+The base URL for API requests is determined in the following order:
+1. Custom configuration via `config.base_url = "http://example.com"`
+2. Rails `action_mailer.default_url_options` settings
+3. Default fallback to `"http://localhost:3000"`
 
 ---
 
@@ -179,7 +231,6 @@ For use with something like [Goose](https://github.com/block/goose):
 ```
 goose session --with-extension "ruby path_to/tmp/server.rb"
 ```
-
 ---
 
 ## Requirements
