@@ -98,12 +98,13 @@ After tagging routes and defining parameters, run
 ```bash
   bin/rails mcp:generate_server
 ```
-The MCP server will be generated in `tmp/server.rb`.
+The MCP server will be generated in `tmp/server.rb`. The server.rb is an executable that attempts to find the closest Gemfile to the file and executes the server using that Gemfile.
+
 LLM agents can now connect to this server and interact with your application via HTTP requests.
 
 For an agent like Goose, you can use this new server with
 ```
-goose session --with-extension "ruby path_to/tmp/server.rb"
+goose session --with-extension "path_to/tmp/server.rb"
 ```
 ---
 
