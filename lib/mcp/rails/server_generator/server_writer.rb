@@ -47,12 +47,13 @@ module MCP
         name = param[:name].to_sym
         type = (param[:type] || "string").capitalize
         required = param[:required] ? ", required: true" : ""
+        description = param[:description] ? ", description: \"#{param[:description]}\"" : ""
 
         if param[:nested]
           nested_params = param[:nested].map { |np| generate_parameter(np, indent_level + 1) }.join("\n")
-          "#{indent}argument :#{name} #{required} do\n#{nested_params}\n#{indent}end"
+          "#{indent}argument :#{name}#{required}#{description} do\n#{nested_params}\n#{indent}end"
         else
-          "#{indent}argument :#{name}, #{type}#{required}"
+          "#{indent}argument :#{name}, #{type}#{required}#{description}"
         end
       end
 
@@ -132,39 +133,18 @@ module MCP
         end
 
         env_vars = config.env_vars.map do |var|
-          "      args[:#{var.downcase}] = ENV['#{var}']"
+          "args[:#{var.downcase}] = ENV['#{var}']"
         end.join("\n")
 
-        case route[:method]
-        when :get
-          <<~RUBY
-            run do |args|
-              #{env_vars}
-              get_resource("#{uri}", args)
-            end
-          RUBY
-        when :post
-          <<~RUBY
-            run do |args|
-              #{env_vars}
-              post_resource("#{uri}", args)
-            end
-          RUBY
-        when :patch
-          <<~RUBY
-            run do |args|
-              #{env_vars}
-              patch_resource("#{uri}", args)
-            end
-          RUBY
-        when :delete
-          <<~RUBY
-            run do |args|
-              #{env_vars}
-              delete_resource("#{uri}", args)
-            end
-          RUBY
-        end
+        method = route[:method].to_s.downcase
+        helper_method = "#{method}_resource"
+
+        <<~RUBY
+          call do |args|
+            #{env_vars}
+            #{helper_method}("#{uri}", args)
+          end
+        RUBY
       end
     end
   end

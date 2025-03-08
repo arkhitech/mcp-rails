@@ -7,13 +7,9 @@ module MCP
           base_url = config.base_url
           bypass_csrf_key = BypassKeyManager.create_new_key
 
-          # Collect all routes including engine routes
           all_routes = RouteCollector.collect_routes(::Rails.application.routes.routes).flatten
-
-          # Group routes by engine
           grouped_routes = all_routes.group_by { |r| r[:engine] }
 
-          # Generate server files for each group
           generated_files = []
 
           # Process main app routes
@@ -21,7 +17,7 @@ module MCP
           if main_app_routes.any?
             file_path = ServerWriter.write_server(
               main_app_routes,
-              config,
+              config.for_engine(nil),
               base_url,
               bypass_csrf_key
             )
@@ -30,14 +26,15 @@ module MCP
 
           # Process each engine's routes
           grouped_routes.each do |engine, routes|
-            next unless engine # Skip main app routes which we processed above
+            next unless engine
 
             engine_routes = RouteCollector.process_routes(routes)
             next unless engine_routes.any?
 
+            engine_config = config.for_engine(engine)
             file_path = ServerWriter.write_server(
               engine_routes,
-              config,
+              engine_config,
               base_url,
               bypass_csrf_key,
               engine

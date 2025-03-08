@@ -16,6 +16,7 @@ module MCP
 
       test "provides default configuration values" do
         config = MCP::Rails.configuration
+        config.env_vars = [ "API_KEY", "ORGANIZATION_ID" ]
 
         assert_equal ::Rails.root.join("tmp", "mcp", "bypass_key.txt").to_s, config.bypass_key_path.to_s
         assert_equal ::Rails.root.join("tmp", "mcp").to_s, config.output_directory.to_s

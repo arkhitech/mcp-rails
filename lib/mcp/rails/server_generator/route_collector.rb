@@ -16,7 +16,7 @@ module MCP
               engine: engine
             }
           end
-        end
+        end.flatten
       end
 
       def self.process_routes(routes)
@@ -38,6 +38,7 @@ module MCP
             action = route.defaults[:action].to_sym
             params_def = controller_class.permitted_params(action)
           rescue NameError
+            Rails.logger.warn("Controller not found for route: #{route.defaults[:controller]}")
             next
           end
 
@@ -47,21 +48,29 @@ module MCP
 
           {
             tool_name: "#{action}_#{route.defaults[:controller].parameterize}",
-            description: "Handles #{action} for #{route.defaults[:controller]}",
+            description: escape_for_ruby_string("Handles #{action} for #{route.defaults[:controller]}"),
             method: route.verb.downcase.to_sym,
             path: full_path,
             url_parameters: url_params,
             engine: wrapped_route[:engine],
-            accepted_parameters: params_def.map do |param|
-              {
-                name: param[:name],
-                type: param[:type] || String,
-                required: param[:required],
-                nested: param[:nested]&.map { |n| { name: n[:name], type: n[:type], required: n[:required] } }
-              }.compact
-            end
+            accepted_parameters: params_def.map { |param| build_param_structure(param) }
           }
         end.compact
+      end
+
+      def self.build_param_structure(param)
+        structure = {
+          name: param[:name],
+          type: param[:type] || String,
+          required: param[:required]
+        }
+        structure[:description] = escape_for_ruby_string(param[:example]) if param[:example]
+        structure[:nested] = param[:nested].map { |n| build_param_structure(n) } if param[:nested]
+        structure
+      end
+
+      def self.escape_for_ruby_string(str)
+        str.to_s.gsub(/[\\"]/) { |m| "\\#{m}" }
       end
 
       def self.extract_url_params(path)

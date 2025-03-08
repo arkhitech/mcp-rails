@@ -92,6 +92,56 @@ module MCP
         assert_match(/#{second_key}/, second_content)
         refute_match(/#{first_key}/, second_content)
       end
+
+      test "includes routes from dummy app" do
+        generator = MCP::Rails::ServerGenerator
+        server_file_paths = generator.generate_files
+        content = File.read(server_file_paths.first)
+
+        # Verify channels routes are included
+        assert_match(/channels/, content)
+      end
+
+      test "includes parameter definitions from controllers" do
+        generator = MCP::Rails::ServerGenerator
+        server_file_paths = generator.generate_files
+        content = File.read(server_file_paths.first)
+
+        # Verify channel parameter definitions
+        assert_match(/argument :channel, String, required: true/, content)
+        assert_match(/argument :name, String/, content)
+        assert_match(/argument :user_ids, Array/, content)
+        assert_match(/example: "Channel Name"/, content)
+        assert_match(/example: \["1", "2"\]/, content)
+      end
+
+      test "excludes non-MCP routes" do
+        generator = MCP::Rails::ServerGenerator
+        server_file_paths = generator.generate_files
+        content = File.read(server_file_paths.first)
+
+        # Health check route should not be included as it's not marked with mcp: true
+        refute_match(/rails_health_check/, content)
+      end
+
+      test "generates server with correct HTTP methods" do
+        generator = MCP::Rails::ServerGenerator
+        server_file_paths = generator.generate_files
+        content = File.read(server_file_paths.first)
+
+        # Verify HTTP methods for channels routes
+        assert_match(/get.*channels/, content)  # index
+        assert_match(/post.*channels/, content) # create
+      end
+
+      test "handles nested route parameters correctly" do
+        generator = MCP::Rails::ServerGenerator
+        server_file_paths = generator.generate_files
+        content = File.read(server_file_paths.first)
+
+        # Verify nested parameter structure for channel creation
+        assert_match(/channel: {.*name: .*user_ids:/m, content)
+      end
     end
   end
 end
