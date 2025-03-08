@@ -59,16 +59,16 @@ module MCP
 
       # Register an engine's configuration
       def register_engine(engine, settings = {})
-        @engine_configurations[engine.name.parameterize] = EngineConfiguration.new(settings)
+        @engine_configurations[engine.engine_name] = EngineConfiguration.new(settings)
       end
 
       # Get configuration for a specific engine
       def for_engine(engine)
         return self unless engine
-        engine_config = @engine_configurations[engine.name.parameterize]
+        engine_config = @engine_configurations[engine.engine_name]
 
         dup.tap do |config|
-          config.server_name = "#{engine.name.parameterize}-server"
+          config.server_name = engine.engine_name
           config.instance_variable_set(:@env_vars, (self.env_vars + engine_config.env_vars).uniq)
         end
       end

@@ -5,7 +5,7 @@ module MCP
         # Get engine-specific configuration if available
         config = config.for_engine(engine)
 
-        file_name = engine ? "#{engine.engine_name}_server.rb" : "server.rb"
+        file_name = engine ? "#{config.server_name}_server.rb" : "server.rb"
         file_path = File.join(config.output_directory.to_s, file_name)
         FileUtils.mkdir_p(File.dirname(file_path))
 
@@ -18,9 +18,7 @@ module MCP
           file.puts helper_methods(base_url, bypass_csrf_key)
           file.puts
 
-          # Use engine name if available, otherwise use config name
-          server_name = engine ? "#{engine.engine_name}-server" : config.server_name
-          file.puts %(name "#{server_name}")
+          file.puts %(name "#{config.server_name}")
           file.puts %(version "#{config.server_version}")
 
           routes_data.each do |route|
