@@ -5,8 +5,8 @@ module Mcp
       gem_root = Gem::Specification.find_by_name("mcp-rails").gem_dir
 
       config.to_prepare do
-        require File.join(gem_root, "app/controllers/concerns/mcp_paramable")
-        ActionController::Base.include(McpParamable)
+        require File.join(gem_root, "app/controllers/concerns/mcp/rails/parameters")
+        ActionController::Base.include(MCP::Rails::Parameters)
       end
 
       rake_tasks do

@@ -1,3 +1,5 @@
+require "pathname"
+
 module MCP
   module Rails
     class Configuration
@@ -5,7 +7,7 @@ module MCP
       attr_accessor :server_name, :server_version
       
       # Output configuration
-      attr_accessor :output_directory, :bypass_key_path
+      attr_writer :output_directory, :bypass_key_path
       
       # Environment variables to include in tool calls
       attr_accessor :env_vars
@@ -47,6 +49,14 @@ module MCP
         @base_url = url
       end
 
+      def bypass_key_path
+        Pathname.new(@bypass_key_path || ::Rails.root.join("tmp", "mcp", "bypass_key.txt"))
+      end
+
+      def output_directory
+        Pathname.new(@output_directory || ::Rails.root.join("tmp", "mcp"))
+      end
+
       # Register an engine's configuration
       def register_engine(engine_name, settings = {})
         @engine_configurations[engine_name.to_s] = EngineConfiguration.new(settings)
@@ -55,14 +65,11 @@ module MCP
       # Get configuration for a specific engine
       def for_engine(engine)
         return self unless engine
-        engine_name = engine.engine_name.to_s
-        engine_config = @engine_configurations[engine_name]
-        return self unless engine_config
-
-        # Create a merged configuration
-        merged_config = self.dup
-        merged_config.instance_variable_set(:@env_vars, (self.env_vars + engine_config.env_vars).uniq)
-        merged_config
+        
+        dup.tap do |config|
+          config.server_name = "#{engine.engine_name}-server"
+          config.instance_variable_set(:@env_vars, (self.env_vars + engine.env_vars).uniq)
+        end
       end
     end
 

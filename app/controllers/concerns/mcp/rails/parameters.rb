@@ -1,4 +1,4 @@
-module McpParamable
+module MCP::Rails::Parameters
   extend ActiveSupport::Concern
 
   included do
