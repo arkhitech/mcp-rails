@@ -108,11 +108,11 @@ module MCP
         content = File.read(server_file_paths.first)
 
         # Verify channel parameter definitions
-        assert_match(/argument :channel, String, required: true/, content)
+        assert_match(/argument :channel, required: true/, content)
         assert_match(/argument :name, String/, content)
         assert_match(/argument :user_ids, Array/, content)
-        assert_match(/example: "Channel Name"/, content)
-        assert_match(/example: \["1", "2"\]/, content)
+        assert_match(/description: "Channel Name"/, content)
+        assert_match(%(description: \"[\\\"item1\\\", \\\"item2\\\"]\"), content)
       end
 
       test "excludes non-MCP routes" do
@@ -139,8 +139,15 @@ module MCP
         server_file_paths = generator.generate_files
         content = File.read(server_file_paths.first)
 
-        # Verify nested parameter structure for channel creation
-        assert_match(/channel: {.*name: .*user_ids:/m, content)
+        nested_parameters = <<~RUBY
+            argument :channel, required: true do
+              argument :name, String, required: true, description: "Channel Name"
+              argument :user_ids, Array, description: "[\"1\", \"2\"]"
+            end
+        RUBY
+        nested_parameters = nested_parameters.gsub(/\s+/, "").gsub(/\\"/, '"')
+        normalized_content = content.gsub(/\s+/, "").gsub(/\\"/, '"')
+        assert_match(nested_parameters, normalized_content)
       end
     end
   end

@@ -5,4 +5,3 @@ gemspec path: "../.."
 
 gem "sqlite3"
 gem "puma"
-gem "mcp-rb", git: "https://github.com/Tonksthebear/mcp-rb", branch: "nested-arguments"

@@ -24,9 +24,6 @@ Add this line to your application's `Gemfile`:
 
 ```ruby
 gem 'mcp-rails', git: 'https://github.com/Tonksthebear/mcp-rails'
-
-# Temporary update to mcp-rb
-gem 'mcp-rb', git: 'https://github.com/Tonksthebear/mcp-rb', branch: "nested-arguments"'
 ```
 
 Then run:

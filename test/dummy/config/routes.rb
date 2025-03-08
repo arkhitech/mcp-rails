@@ -7,6 +7,7 @@ Rails.application.routes.draw do
 
   resources :channels, mcp: true
 
+  resources :basic_parameters, only: :create, mcp: true
   resources :array_parameters, only: :create, mcp: true
   resources :nested_parameters, only: :create, mcp: true
   resources :shared_parameters, only: :create, mcp: true

@@ -67,22 +67,23 @@ module MCP
           invalid_param: "should be filtered"
         })
 
-        filtered_params = @controller.send(:resource_params)
+        filtered_params = controller.send(:resource_params)
         assert_equal "Test Name", filtered_params[:name]
         assert_equal 25, filtered_params[:age]
         assert_not_includes filtered_params.keys, :invalid_param
       end
 
       test "resource_params raises error for missing required parameters" do
-        @controller.action_name = "nested"
-        @controller.params = ActionController::Parameters.new({
+        controller = setup_controller(NestedParametersController)
+        controller.action_name = "create"
+        controller.params = ActionController::Parameters.new({
           user: {}
         })
 
         error = assert_raises(ActionController::ParameterMissing) do
-          @controller.send(:resource_params)
+          controller.send(:resource_params)
         end
-        assert_match(/param is missing or the value is empty or invalid: user/, error.message)
+        assert_match(/param is missing.*user/, error.message)
       end
 
       test "resource_params handles shared parameters" do
@@ -94,7 +95,7 @@ module MCP
           phone: "123-456-7890"
         })
 
-        filtered_params = @controller.send(:resource_params)
+        filtered_params = controller.send(:resource_params)
         assert_equal "Test Name", filtered_params[:name]
         assert_equal "test@example.com", filtered_params[:email]
         assert_equal "123-456-7890", filtered_params[:phone]
