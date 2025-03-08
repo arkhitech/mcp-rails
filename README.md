@@ -62,6 +62,14 @@ MCP::Rails.configure do |config|
 end
 ```
 
+If you are an engine developer, you can register your engine's configuration with MCP-Rails:
+
+```ruby
+MCP::Rails.configure do |config|
+  config.register_engine(YourEngine, env_vars: ["YOUR_ENGINE_KEY"])
+end
+```
+
 ### Environment Variables
 
 The `env_vars` configuration option specifies which environment variables should be automatically included in every MCP tool call. For example, if you configure:
@@ -145,9 +153,11 @@ The LLM will now provide the exact parameters you're used to with default rails 
 After tagging routes and defining parameters, run 
 
 ```bash
-  bin/rails mcp:generate_server
+  bin/rails mcp:rails:generate_server
 ```
 The MCP server will be generated in `tmp/server.rb`. The server.rb is an executable that attempts to find the closest Gemfile to the file and executes the server using that Gemfile.
+
+If any engines are registered, the server will be generated for each engine as well.
 
 LLM agents can now connect to this server and interact with your application via HTTP requests.
 
