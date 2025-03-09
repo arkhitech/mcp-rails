@@ -22,8 +22,8 @@ module MCP
           file.puts %(version "#{config.server_version}")
 
           routes_data.each do |route|
-            file.puts %(tool "#{route[:tool_name]}" do)
-            file.puts "  description \"#{route[:description]}\""
+            file.puts %(tool "#{route[:tool_name].underscore}" do)
+            file.puts "  description \"#{route[:description].sub(/\//, ' ')}\""
             route[:accepted_parameters].each do |param|
               file.puts generate_parameter(param)
             end

@@ -5,7 +5,11 @@ Rails.application.routes.draw do
   # Can be used by load balancers and uptime monitors to verify that the app is live.
   get "up" => "rails/health#show", as: :rails_health_check
 
-  resources :channels, mcp: true
+  resources :channels, mcp: true do
+    scope module: "channels" do
+      resources :messages, mcp: true, shallow: true
+    end
+  end
 
   resources :basic_parameters, only: :create, mcp: true
   resources :array_parameters, only: :create, mcp: true
