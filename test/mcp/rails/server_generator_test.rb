@@ -142,7 +142,7 @@ module MCP
         nested_parameters = <<~RUBY
             argument :channel, required: true do
               argument :name, String, required: true, description: "Channel Name"
-              argument :user_ids, Array, description: "[\"1\", \"2\"]"
+              argument :user_ids, Array, items: String, description: "[\"1\", \"2\"]"
             end
         RUBY
         nested_parameters = nested_parameters.gsub(/\s+/, "").gsub(/\\"/, '"')

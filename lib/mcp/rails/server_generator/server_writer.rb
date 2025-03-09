@@ -40,18 +40,43 @@ module MCP
         file_path
       end
 
+      def self.type_to_class(type)
+        case type
+        when :string then "String"
+        when :integer then "Integer"
+        when :number then "Float"
+        when :boolean then "Boolean"
+        when :array then "Array"
+        else "String"  # Default to String
+        end
+      end
+
       def self.generate_parameter(param, indent_level = 1)
         indent = "  " * indent_level
         name = param[:name].to_sym
-        type = (param[:type] || "string").capitalize
         required = param[:required] ? ", required: true" : ""
         description = param[:description] ? ", description: \"#{param[:description]}\"" : ""
 
-        if param[:nested]
+        if param[:type] == :array
+          if param[:item_type]
+            # Scalar array: argument :name, Array, items: Type
+            type_str = "Array, items: #{type_to_class(param[:item_type])}"
+            "#{indent}argument :#{name}, #{type_str}#{required}#{description}"
+          elsif param[:nested]
+            # Array of objects: argument :name, Array do ... end
+            nested_params = param[:nested].map { |np| generate_parameter(np, indent_level + 1) }.join("\n")
+            "#{indent}argument :#{name}, Array#{required}#{description} do\n#{nested_params}\n#{indent}end"
+          else
+            raise "Array parameter must have either item_type or nested parameters"
+          end
+        elsif param[:type] == :object && param[:nested]
+          # Object: argument :name do ... end
           nested_params = param[:nested].map { |np| generate_parameter(np, indent_level + 1) }.join("\n")
           "#{indent}argument :#{name}#{required}#{description} do\n#{nested_params}\n#{indent}end"
         else
-          "#{indent}argument :#{name}, #{type}#{required}#{description}"
+          # Scalar type: argument :name, Type
+          type_str = type_to_class(param[:type])
+          "#{indent}argument :#{name}, #{type_str}#{required}#{description}"
         end
       end
 
