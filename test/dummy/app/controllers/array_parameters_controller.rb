@@ -1,9 +1,9 @@
 class ArrayParametersController < ApplicationController
   permitted_params_for :create do
-    param :tags, type: :array, example: [ "tag1", "tag2" ]
+    param :tags, type: :array, item_type: :string, example: [ "tag1", "tag2" ]
     param :items, required: true do
-      param :ids, type: :array, required: true
-      param :names, type: :array, example: [ "item1", "item2" ]
+      param :ids, type: :array, item_type: :integer, required: true
+      param :names, type: :array, item_type: :string, example: [ "item1", "item2" ]
     end
   end
 

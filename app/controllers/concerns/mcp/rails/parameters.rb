@@ -92,10 +92,18 @@ module MCP::Rails::Parameters
   # Helper to extract permitted keys for strong parameters
   def extract_permitted_keys(params_def)
     params_def.map do |param|
-      if param[:nested]
-        { param[:name] => extract_permitted_keys(param[:nested]) }
+      if param[:type] == :array
+        if param[:item_type]
+          { param[:name] => [] }  # Scalar array
+        elsif param[:nested]
+          { param[:name] => extract_permitted_keys(param[:nested]) }  # Array of hashes
+        else
+          raise "Invalid array parameter definition"
+        end
+      elsif param[:nested]
+        { param[:name] => extract_permitted_keys(param[:nested]) }  # Nested object
       else
-        param[:name]
+        param[:name]  # Scalar
       end
     end
   end
@@ -108,16 +116,28 @@ module MCP::Rails::Parameters
       @params = []
     end
 
-    def param(name, type: nil, example: nil, required: false, &block)
+    def param(name, type: nil, item_type: nil, example: nil, required: false, &block)
       param_def = { name: name, required: required }
-      param_def[:type] = type if type
-      param_def[:example] = example if example
-      if block_given?
+      if type == :array
+        param_def[:type] = :array
+        if block_given?
+          nested_builder = ParamsBuilder.new
+          nested_builder.instance_eval(&block)
+          param_def[:nested] = nested_builder.params
+        elsif item_type
+          param_def[:item_type] = item_type
+        else
+          raise ArgumentError, "Must provide item_type or a block for array type"
+        end
+      elsif block_given?
         param_def[:type] = :object
         nested_builder = ParamsBuilder.new
         nested_builder.instance_eval(&block)
         param_def[:nested] = nested_builder.params
+      else
+        param_def[:type] = type if type
       end
+      param_def[:example] = example if example
       @params << param_def
     end
   end
