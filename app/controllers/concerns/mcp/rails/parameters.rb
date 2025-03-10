@@ -35,6 +35,14 @@ module MCP::Rails::Parameters
     end
   end
 
+  included do
+    def mcp_invocation?
+      bypass_key = request.headers["X-Bypass-CSRF"]
+      stored_key = File.read(Rails.root.join("tmp", "mcp", "bypass_key.txt")).strip rescue nil
+      bypass_key.present? && bypass_key == stored_key
+    end
+  end
+
   class_methods do
     # Define shared parameters
     def shared_params(name, &block)
