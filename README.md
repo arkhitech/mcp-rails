@@ -148,7 +148,23 @@ The LLM will now provide the exact parameters you're used to with default rails 
 - **MCP Server**: The generated `tmp/server.rb` will include these parameters, making them available to LLM agents.
 - **Rails Strong Parameters**: Calling `resource_params` in your controller action automatically permits and fetches the defined parameters.
 
-### 3. Running the MCP Server
+### 3. Customizing Tool Descriptions
+
+By default, MCP-Rails generates tool descriptions in the format "Handles [action] for [controller]". You can customize these descriptions to be more specific and informative using the `tool_description_for` method in your controllers:
+
+```ruby
+class ChannelsController < ApplicationController
+  tool_description_for :create, "Create a new channel with the specified name and members"
+  tool_description_for :index, "List all available channels"
+  tool_description_for :show, "Get detailed information about a specific channel"
+
+  # ... rest of controller code
+end
+```
+
+These descriptions will be used when generating the MCP server, making it clearer to LLM agents what each endpoint does.
+
+### 4. Running the MCP Server
 
 After tagging routes and defining parameters, run 
 

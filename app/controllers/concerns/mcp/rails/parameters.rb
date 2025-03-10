@@ -1,24 +1,37 @@
 module MCP::Rails::Parameters
   extend ActiveSupport::Concern
 
-  included do
-    class_attribute :shared_params_defs, :action_params_defs
+  def self.included(base)
+    base.extend ClassMethods
+    base.class_eval do
+      # Initialize instance variables for each class
+      @shared_params_defs = {}
+      @action_params_defs = {}
 
-    # Use a hook to initialize fresh instances for each class
-    self.shared_params_defs = {}
-    self.action_params_defs = {}
+      # Define class-level accessors
+      def self.shared_params_defs
+        @shared_params_defs ||= {}
+      end
 
-    # Ensure that inherited classes also get their own copies
-    def self.inherited(subclass)
-      super
-      subclass.shared_params_defs = shared_params_defs.dup
-      subclass.action_params_defs = action_params_defs.dup
-    end
+      def self.action_params_defs
+        @action_params_defs ||= {}
+      end
 
-    def mcp_invocation?
-      bypass_key = request.headers["X-Bypass-CSRF"]
-      stored_key = File.read(Rails.root.join("tmp", "mcp", "bypass_key.txt")).strip rescue nil
-      bypass_key.present? && bypass_key == stored_key
+      # Optionally, define setters if needed
+      def self.shared_params_defs=(value)
+        @shared_params_defs = value
+      end
+
+      def self.action_params_defs=(value)
+        @action_params_defs = value
+      end
+
+      # Ensure subclasses get their own fresh instances
+      def self.inherited(subclass)
+        super
+        subclass.instance_variable_set(:@shared_params_defs, {})
+        subclass.instance_variable_set(:@action_params_defs, {})
+      end
     end
   end
 

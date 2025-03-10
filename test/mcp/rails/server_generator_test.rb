@@ -4,7 +4,7 @@ module MCP
   module Rails
     class ServerGeneratorTest < ActiveSupport::TestCase
       def setup
-        @temp_dir = Dir.mktmpdir
+        @temp_dir = Dir.mktmpdir nil, ::Rails.root.join("tmp")
         @key_path = File.join(@temp_dir, "bypass_key.txt")
         @output_dir = File.join(@temp_dir, "server.rb")
 
@@ -16,6 +16,8 @@ module MCP
           config.server_version = "1.0.0"
           config.env_vars = [ "TEST_API_KEY" ]
         end
+
+        @generator = MCP::Rails::ServerGenerator
       end
 
       def teardown
@@ -24,8 +26,7 @@ module MCP
       end
 
       test "generates server file with correct configuration" do
-        generator = MCP::Rails::ServerGenerator
-        server_file_paths = generator.generate_files
+        server_file_paths = @generator.generate_files
 
         server_file_paths.each do |server_file_path|
           assert File.exist?(server_file_path)
@@ -41,20 +42,18 @@ module MCP
       end
 
       test "includes bypass key in generated server" do
-        generator = MCP::Rails::ServerGenerator
-        server_file_paths = generator.generate_files
+        server_file_paths = @generator.generate_files
 
         server_file_paths.each do |server_file_path|
           content = File.read(server_file_path)
 
-          bypass_key = File.read(MCP::Rails.configuration.bypass_key_path).strip
+          bypass_key = File.read(@key_path).strip
           assert_match(/#{bypass_key}/, content)
         end
       end
 
       test "generates executable server file" do
-        generator = MCP::Rails::ServerGenerator
-        server_file_paths = generator.generate_files
+        server_file_paths = @generator.generate_files
 
         server_file_paths.each do |server_file_path|
           assert File.executable?(server_file_path)
@@ -64,28 +63,22 @@ module MCP
       end
 
       test "includes base URL in server configuration" do
-        MCP::Rails.configure do |config|
-          config.base_url = "https://test.example.com"
-        end
-
-        generator = MCP::Rails::ServerGenerator
-        server_file_paths = generator.generate_files
+        MCP::Rails.configuration.base_url = "https://test.example.com"
+        server_file_paths = @generator.generate_files
         content = File.read(server_file_paths.first)
 
         assert_match("https://test.example.com", content)
       end
 
       test "regenerates bypass key for each server generation" do
-        generator = MCP::Rails::ServerGenerator
-        first_server_file_paths = generator.generate_files
+        first_server_file_paths = @generator.generate_files
         first_content = File.read(first_server_file_paths.first)
-        first_key = File.read(MCP::Rails.configuration.bypass_key_path).strip
+        first_key = File.read(@key_path).strip
 
         # Generate a second server
-        generator = MCP::Rails::ServerGenerator
-        second_server_file_paths = generator.generate_files
+        second_server_file_paths = @generator.generate_files
         second_content = File.read(second_server_file_paths.first)
-        second_key = File.read(MCP::Rails.configuration.bypass_key_path).strip
+        second_key = File.read(@key_path).strip
 
         # Keys should be different for each generation
         refute_equal first_key, second_key
@@ -94,8 +87,7 @@ module MCP
       end
 
       test "includes routes from dummy app" do
-        generator = MCP::Rails::ServerGenerator
-        server_file_paths = generator.generate_files
+        server_file_paths = @generator.generate_files
         content = File.read(server_file_paths.first)
 
         # Verify channels routes are included
@@ -103,8 +95,7 @@ module MCP
       end
 
       test "includes parameter definitions from controllers" do
-        generator = MCP::Rails::ServerGenerator
-        server_file_paths = generator.generate_files
+        server_file_paths = @generator.generate_files
         content = File.read(server_file_paths.first)
 
         # Verify channel parameter definitions
@@ -115,9 +106,17 @@ module MCP
         assert_match(%(description: \"[\\\"item1\\\", \\\"item2\\\"]\"), content)
       end
 
+      test "includes custom tool descriptions from controllers" do
+        server_file_paths = @generator.generate_files
+        content = File.read(server_file_paths.first)
+
+        # Verify custom descriptions are included
+        assert_match(/description "List all channels"/, content)
+        assert_match(/description "Handles create for channels"/, content)
+      end
+
       test "excludes non-MCP routes" do
-        generator = MCP::Rails::ServerGenerator
-        server_file_paths = generator.generate_files
+        server_file_paths = @generator.generate_files
         content = File.read(server_file_paths.first)
 
         # Health check route should not be included as it's not marked with mcp: true
@@ -125,8 +124,7 @@ module MCP
       end
 
       test "generates server with correct HTTP methods" do
-        generator = MCP::Rails::ServerGenerator
-        server_file_paths = generator.generate_files
+        server_file_paths = @generator.generate_files
         content = File.read(server_file_paths.first)
 
         # Verify HTTP methods for channels routes
@@ -135,8 +133,7 @@ module MCP
       end
 
       test "handles nested route parameters correctly" do
-        generator = MCP::Rails::ServerGenerator
-        server_file_paths = generator.generate_files
+        server_file_paths = @generator.generate_files
         content = File.read(server_file_paths.first)
 
         nested_parameters = <<~RUBY

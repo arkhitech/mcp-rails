@@ -1,4 +1,6 @@
 class ChannelsController < ApplicationController
+  tool_description_for :index, "List all channels"
+
   permitted_params_for :create do
     param :channel, required: true do
       param :name, type: :string, example: "Channel Name", required: true

@@ -38,7 +38,7 @@ module MCP
             action = route.defaults[:action].to_sym
             params_def = controller_class.permitted_params(action)
           rescue NameError
-            Rails.logger.warn("Controller not found for route: #{route.defaults[:controller]}")
+            ::Rails.logger.warn("Controller not found for route: #{route.defaults[:controller]}")
             next
           end
 
@@ -46,9 +46,11 @@ module MCP
           url_params = extract_url_params(full_path)
           params_def += url_params unless params_def.any? { |p| url_params.map { |up| up[:name] }.include?(p[:name]) }
 
+          description = controller_class.tool_description(action) || "Handles #{action} for #{route.defaults[:controller]}"
+
           {
             tool_name: "#{action}_#{route.defaults[:controller].parameterize}",
-            description: escape_for_ruby_string("Handles #{action} for #{route.defaults[:controller]}"),
+            description: escape_for_ruby_string(description),
             method: route.verb.downcase.to_sym,
             path: full_path,
             url_parameters: url_params,

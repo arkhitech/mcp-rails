@@ -6,7 +6,9 @@ module Mcp
 
       config.to_prepare do
         require File.join(gem_root, "app/controllers/concerns/mcp/rails/parameters")
+        require File.join(gem_root, "app/controllers/concerns/mcp/rails/tool_descriptions")
         ActionController::Base.include(MCP::Rails::Parameters)
+        ActionController::Base.include(MCP::Rails::ToolDescriptions)
       end
 
       rake_tasks do
