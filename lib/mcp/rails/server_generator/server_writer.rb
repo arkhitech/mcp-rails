@@ -45,7 +45,7 @@ module MCP
         when :string then "String"
         when :integer then "Integer"
         when :number then "Float"
-        when :boolean then "Boolean"
+        when :boolean then "TrueClass"
         when :array then "Array"
         else "String"  # Default to String
         end
@@ -111,6 +111,7 @@ module MCP
       end
 
       def self.helper_methods(base_uri, bypass_csrf_key)
+        return test_helper_methods(base_uri, bypass_csrf_key) if ::Rails.env.test?
         <<~RUBY
           def transform_args(args)
             if args.is_a?(Hash)
@@ -166,6 +167,45 @@ module MCP
           call do |args|
             #{env_vars}
             #{helper_method}("#{uri}", args)
+          end
+        RUBY
+      end
+
+      def self.test_helper_methods(base_uri, bypass_csrf_key)
+        <<~RUBY
+          def transform_args(args)
+            if args.is_a?(Hash)
+              args.transform_keys { |key| key.to_s.gsub(/([a-z])([A-Z])/, '\\1_\\2').gsub(/([A-Z])([A-Z][a-z])/, '\\1_\\2').downcase }
+                .transform_values { |value| transform_args(value) }
+            else
+              args # Return non-hash values (e.g., strings, integers) unchanged
+            end
+          end
+
+          def get_resource(uri, arguments = {})
+            test_context = arguments.delete(:test_context)
+            test_context.get uri, headers: { "Accept" => "application/json" }
+          end
+
+          def post_resource(uri, payload = {})
+            test_context = payload.delete(:test_context)
+            headers = { "Accept" => "application/json" }
+            headers["X-Bypass-CSRF"] = "#{bypass_csrf_key}"
+            test_context.post uri, params: payload, headers: headers
+          end
+
+          def patch_resource(uri, payload = {})
+            test_context = payload.delete(:test_context)
+            headers = { "Accept" => "application/json" }
+            headers["X-Bypass-CSRF"] = "#{bypass_csrf_key}"
+            test_context.patch uri, params: payload.merge(headers: headers)
+          end
+
+          def delete_resource(uri, payload = {})
+            test_context = payload.delete(:test_context)
+            headers = { "Accept" => "application/json" }
+            headers["X-Bypass-CSRF"] = "#{bypass_csrf_key}"
+            test_context.delete uri, params: payload.merge(headers: headers)
           end
         RUBY
       end

@@ -6,7 +6,6 @@ class Channels::MessagesController < ApplicationController
   end
 
   def create
-    @message = OpenStruct.new(resource_params)
-    render json: @message, status: :created
+    render json: { mcp_invocation: mcp_invocation?, params: resource_params }, status: :created
   end
 end

@@ -183,6 +183,60 @@ goose session --with-extension "path_to/tmp/server.rb"
 ```
 ---
 
+## Testing Your MCP Server
+
+MCP-Rails provides a test helper module that makes it easy to integration test your MCP server responses. The helper automatically handles server generation, initialization, and cleanup while providing convenient methods to simulate MCP tool calls.
+
+### Setup
+
+Include the test helper in your test class:
+
+```ruby
+require "mcp/rails/test_helper"
+
+class YourTest < ActionDisptach::IntegrationTest
+  include MCP::Rails::TestHelper
+end
+```
+
+The helper automatically:
+- Creates a temporary directory for server files
+- Configures MCP-Rails to use this directory
+- Generates the MCP server files
+- Cleans up after each test
+
+### Available Methods
+
+- `mcp_servers`: Returns all generated MCP servers (main app and engines)
+- `mcp_server(name: "mcp-server")`: Returns a specific server by name
+- `mcp_tool_list(server)`: Gets the list of available tools from a server
+- `mcp_tool_call(server, name, arguments = {})`: Makes a tool call to the server
+
+### Example Usage
+
+```ruby
+class ChannelsControllerTest < ActionDispatch::IntegrationTest
+  include MCP::Rails::TestHelper
+  
+  test "creates a channel via MCP" do
+    server = mcp_server
+    
+    response = mcp_tool_call(
+      server,
+      "create_channel",
+      channel: { name: "General", user_ids: ["1", "2"] }
+    )
+    
+    assert_equal false, response.dig(:result, :isError)
+    assert_equal "Channel created successfully", response.dig(:result, :message)
+  end
+end
+```
+
+This approach allows you to verify that your MCP server correctly handles requests and integrates properly with your Rails application.
+
+---
+
 ## How It Works
 
 1. **Route Tagging**: The `mcp` option in your routes tells `mcp-rails` which endpoints to expose to the MCP server.

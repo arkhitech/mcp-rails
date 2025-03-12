@@ -36,7 +36,7 @@ module MCP::Rails::Parameters
 
     def mcp_invocation?
       bypass_key = request.headers["X-Bypass-CSRF"]
-      stored_key = File.read(Rails.root.join("tmp", "mcp", "bypass_key.txt")).strip rescue nil
+      stored_key = File.read(MCP::Rails.configuration.bypass_key_path).strip rescue nil
       bypass_key.present? && bypass_key == stored_key
     end
   end

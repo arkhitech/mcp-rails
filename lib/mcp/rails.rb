@@ -3,6 +3,7 @@ require "mcp/rails/railtie"
 require "mcp/rails/configuration"
 require "mcp/rails/server_generator"
 require "mcp/rails/bypass_key_manager"
+require_relative "../../test/support/mcp/rails/test_helper"
 require "mcp/rails/server_generator/server_writer"
 require "mcp/rails/server_generator/route_collector"
 
