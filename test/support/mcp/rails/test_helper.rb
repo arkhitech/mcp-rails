@@ -7,6 +7,8 @@ module MCP
           @key_path = File.join(@temp_dir, "bypass_key.txt")
           @output_dir = @temp_dir
 
+          @old_mcp_configuration = MCP::Rails.configuration
+
           MCP::Rails.configure do |config|
             config.bypass_key_path = @key_path
             config.output_directory = @output_dir
@@ -18,7 +20,7 @@ module MCP
 
         base.teardown do
           FileUtils.remove_entry @temp_dir
-          MCP::Rails.reset_configuration!
+          MCP::Rails.configuration = @old_mcp_configuration
         end
       end
 

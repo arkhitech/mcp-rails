@@ -21,6 +21,11 @@ module MCP
       def reset_configuration!
         @configuration = Configuration.new
       end
+
+      def configuration=(configuration)
+        raise ArgumentError, "configuration must be an instance of MCP::Rails::Configuration" unless configuration.is_a?(Configuration)
+        @configuration = configuration
+      end
     end
   end
 end
