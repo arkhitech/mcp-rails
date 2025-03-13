@@ -19,35 +19,12 @@ module Mcp
         Mime::Type.register "application/vnd.mcp+json", :mcp
       end
 
-      # initializer "mcp-rails.renderer" do
-      #   ActionController::Renderers.add :json do |obj, options|
-      #     if request.format.mcp?
-      #       # MCP format: transform keys and wrap in { status: "ok", data: ... }
-      #       obj = obj.as_json if obj.respond_to?(:as_json)
-      #       obj = if obj.is_a?(Array)
-      #               obj.map { |hash| hash.deep_transform_keys { |key| key.to_s.camelize(:lower) } }
-      #       else
-      #               obj.deep_transform_keys { |key| key.to_s.camelize(:lower) }
-      #       end
-      #       { status: "ok", data: obj }.to_json
-      #     else
-      #       # Standard JSON fallback
-      #       obj.to_json
-      #     end
-      #   end
-
-      #   # Optional: Keep the :mcp renderer for explicit render mcp: calls
-      #   ActionController::Renderers.add :mcp do |obj, options|
-      #     self.content_type = Mime[:mcp] if media_type.nil?
-      #     obj = obj.as_json if obj.respond_to?(:as_json)
-      #     obj = if obj.is_a?(Array)
-      #             obj.map { |hash| hash.deep_transform_keys { |key| key.to_s.camelize(:lower) } }
-      #     else
-      #             obj.deep_transform_keys { |key| key.to_s.camelize(:lower) }
-      #     end
-      #     { status: "ok", data: obj }.to_json
-      #   end
-      # end
+      initializer "mcp-rails.renderer" do
+        ActionController::Renderers.add :mcp do |mcp_json, options|
+          self.content_type = Mime[:mcp] if media_type.nil?
+          mcp_json
+        end
+      end
 
       initializer "mcp-rails.integration_test_request_encoding" do
         ActiveSupport.on_load(:action_dispatch_integration_test) do
