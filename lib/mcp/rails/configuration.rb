@@ -59,7 +59,8 @@ module MCP
 
       # Register an engine's configuration
       def register_engine(engine, settings = {})
-        @engine_configurations[engine.engine_name] = EngineConfiguration.new(settings)
+        engine_name = engine.respond_to?(:engine_name) ? engine.engine_name : engine
+        @engine_configurations[engine_name] = EngineConfiguration.new(settings)
       end
 
       # Get configuration for a specific engine
