@@ -10,8 +10,8 @@ module MCP
           @old_mcp_configuration = MCP::Rails.configuration
 
           @new_mcp_configuration = MCP::Rails::Configuration.new
-          @old_mcp_configuration.engine_configurations.each do |engine, config|
-            @new_mcp_configuration.register_engine engine, config
+          @old_mcp_configuration.engine_configurations.each do |config|
+            @new_mcp_configuration.register_engine config.server_name, env_vars: config.env_vars
           end
           @new_mcp_configuration.bypass_key_path = @key_path
           @new_mcp_configuration.output_directory = @output_dir
