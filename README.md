@@ -148,7 +148,65 @@ The LLM will now provide the exact parameters you're used to with default rails 
 - **MCP Server**: The generated `tmp/server.rb` will include these parameters, making them available to LLM agents.
 - **Rails Strong Parameters**: Calling `resource_params` in your controller action automatically permits and fetches the defined parameters.
 
-### 3. Customizing Tool Descriptions
+### 3. MCP Response Format
+
+MCP-Rails registers a custom MIME type `application/vnd.mcp+json` for MCP-specific responses. This enables:
+- Automatic key camelization for MCP protocol compatibility
+- Standardized response wrapping with status and data
+- View template fallbacks
+
+#### View Templates
+
+You can create MCP-specific views using the `.mcp.jbuilder` extension:
+
+```ruby
+# app/views/channels/show.mcp.jbuilder
+json.name @channel.name
+json.user_ids @channel.user_ids
+```
+
+If an MCP view doesn't exist, it will automatically fall back to the corresponding `.json.jbuilder` view:
+
+```ruby
+# app/views/channels/show.json.jbuilder
+json.name @channel.name
+json.user_ids @channel.user_ids
+```
+
+#### Explicit Rendering
+
+You can also render MCP responses directly in your controllers:
+
+```ruby
+class ChannelsController < ApplicationController
+  def show
+    @channel = Channel.find(params[:id])
+    
+    respond_to do |format|
+      format.json { render json: @channel }
+      format.mcp  { render mcp: @channel }  # Keys will be automatically camelized
+    end
+  end
+end
+```
+
+#### Response Format
+
+All MCP responses are automatically wrapped in a standardized format:
+
+```json
+{
+  "status": 200,
+  "data": {
+    "name": "General",
+    "userIds": ["1", "2"]  # Note: automatically camelized
+  }
+}
+```
+
+This format ensures compatibility with the generated MCP server
+
+### 4. Customizing Tool Descriptions
 
 By default, MCP-Rails generates tool descriptions in the format "Handles [action] for [controller]". You can customize these descriptions to be more specific and informative using the `tool_description_for` method in your controllers:
 
@@ -164,7 +222,7 @@ end
 
 These descriptions will be used when generating the MCP server, making it clearer to LLM agents what each endpoint does.
 
-### 4. Running the MCP Server
+### 5. Running the MCP Server
 
 After tagging routes and defining parameters, run 
 
@@ -194,7 +252,7 @@ Include the test helper in your test class:
 ```ruby
 require "mcp/rails/test_helper"
 
-class YourTest < ActionDisptach::IntegrationTest
+class MCPChannelTest < ActionDispatch::IntegrationTest
   include MCP::Rails::TestHelper
 end
 ```
@@ -209,26 +267,27 @@ The helper automatically:
 
 - `mcp_servers`: Returns all generated MCP servers (main app and engines)
 - `mcp_server(name: "mcp-server")`: Returns a specific server by name
+- `mcp_response_body`: Returns the body of the last MCP response
 - `mcp_tool_list(server)`: Gets the list of available tools from a server
 - `mcp_tool_call(server, name, arguments = {})`: Makes a tool call to the server
 
 ### Example Usage
 
 ```ruby
-class ChannelsControllerTest < ActionDispatch::IntegrationTest
+class MCPChannelTest < ActionDispatch::IntegrationTest
   include MCP::Rails::TestHelper
   
   test "creates a channel via MCP" do
     server = mcp_server
     
-    response = mcp_tool_call(
+    mcp_tool_call(
       server,
       "create_channel",
       channel: { name: "General", user_ids: ["1", "2"] }
     )
     
-    assert_equal false, response.dig(:result, :isError)
-    assert_equal "Channel created successfully", response.dig(:result, :message)
+    assert_equal false, mcp_response_body.dig(:result, :isError)
+    assert_equal "Channel created successfully", mcp_response_body.dig(:result, :message)
   end
 end
 ```

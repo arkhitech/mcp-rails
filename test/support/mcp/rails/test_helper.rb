@@ -9,13 +9,13 @@ module MCP
 
           @old_mcp_configuration = MCP::Rails.configuration
 
-          MCP::Rails.configure do |config|
-            config.bypass_key_path = @key_path
-            config.output_directory = @output_dir
-          end
+          @new_mcp_configuration = MCP::Rails::Configuration.new
+          @new_mcp_configuration.bypass_key_path = @key_path
+          @new_mcp_configuration.output_directory = @output_dir
+          MCP::Rails.configuration = @new_mcp_configuration
 
           @generator = MCP::Rails::ServerGenerator
-          @server_files = @generator.generate_files
+          @server_files = @generator.generate_files(@new_mcp_configuration)
         end
 
         base.teardown do
@@ -58,6 +58,10 @@ module MCP
           }
         }
         send_request(server, request)
+      end
+
+      def mcp_response_body
+        JSON.parse(response.body).dig("data")
       end
 
       private

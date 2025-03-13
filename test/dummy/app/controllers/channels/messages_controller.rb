@@ -5,6 +5,10 @@ class Channels::MessagesController < ApplicationController
     end
   end
 
+  def new; end
+
+  def show; end
+
   def create
     render json: { mcp_invocation: mcp_invocation?, params: resource_params }, status: :created
   end

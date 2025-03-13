@@ -122,30 +122,46 @@ module MCP
             end
           end
 
+          def parse_response(response)
+            response_body = JSON.parse(response.body)
+            case response_body
+            when Hash
+              if response_body["status"] == "error"
+                raise "From Rails Server: \#{response_body["message"]}"
+              else
+                response_body.dig("data")
+              end
+            else
+              raise "None MCP response from Rails Server"
+            end
+          rescue => e
+            raise "Parsing JSON failed: \#{e.message}"
+          end
+
           def get_resource(uri, arguments = {})
-            response = HTTParty.get("#{base_uri}\#{uri}", query: transform_args(arguments), headers: { "Accept" => "application/json" })
-            response.body
+            response = HTTParty.get("#{base_uri}\#{uri}", query: transform_args(arguments), headers: { "Accept" => "application/vnd.mcp+json" })
+            parse_response(response)
           end
 
           def post_resource(uri, payload = {})
-            headers = { "Accept" => "application/json" }
+            headers = { "Accept" => "application/vnd.mcp+json" }
             headers["X-Bypass-CSRF"] = "#{bypass_csrf_key}"
             response = HTTParty.post("#{base_uri}\#{uri}", body: transform_args(payload), headers: headers)
-            response.body
+            parse_response(response)
           end
 
           def patch_resource(uri, payload = {})
-            headers = { "Accept" => "application/json" }
+            headers = { "Accept" => "application/vnd.mcp+json" }
             headers["X-Bypass-CSRF"] = "#{bypass_csrf_key}"
             response = HTTParty.patch("#{base_uri}\#{uri}", body: transform_args(payload), headers: headers)
-            response.body
+            parse_response(response)
           end
 
           def delete_resource(uri, payload = {})
-            headers = { "Accept" => "application/json" }
+            headers = { "Accept" => "application/vnd.mcp+json" }
             headers["X-Bypass-CSRF"] = "#{bypass_csrf_key}"
             response = HTTParty.delete("#{base_uri}\#{uri}", body: transform_args(payload), headers: headers)
-            response.body
+            parse_response(response)
           end
         RUBY
       end
@@ -173,39 +189,51 @@ module MCP
 
       def self.test_helper_methods(base_uri, bypass_csrf_key)
         <<~RUBY
-          def transform_args(args)
-            if args.is_a?(Hash)
-              args.transform_keys { |key| key.to_s.gsub(/([a-z])([A-Z])/, '\\1_\\2').gsub(/([A-Z])([A-Z][a-z])/, '\\1_\\2').downcase }
-                .transform_values { |value| transform_args(value) }
+          def parse_response(test_context)
+            # Would be url: #{base_uri}
+            parsed_body = JSON.parse(test_context.response.body)
+            case parsed_body
+            when Hash
+              if parsed_body["status"] == "error"
+                raise "From Rails Server: \#{parsed_body["message"]}"
+              else
+                parsed_body.dig("data")
+              end
             else
-              args # Return non-hash values (e.g., strings, integers) unchanged
+              raise "None MCP response from Rails Server"
             end
+          rescue => e
+            raise "Parsing JSON failed: \#{e.message}"
           end
 
           def get_resource(uri, arguments = {})
             test_context = arguments.delete(:test_context)
-            test_context.get uri, headers: { "Accept" => "application/json" }
+            test_context.get uri, headers: { "Accept" => "application/vnd.mcp+json" }, as: :mcp
+            parse_response(test_context)
           end
 
           def post_resource(uri, payload = {})
             test_context = payload.delete(:test_context)
-            headers = { "Accept" => "application/json" }
+            headers = { "Accept" => "application/vnd.mcp+json" }
             headers["X-Bypass-CSRF"] = "#{bypass_csrf_key}"
-            test_context.post uri, params: payload, headers: headers
+            test_context.post uri, params: payload, headers: headers, as: :mcp
+            parse_response(test_context)
           end
 
           def patch_resource(uri, payload = {})
             test_context = payload.delete(:test_context)
-            headers = { "Accept" => "application/json" }
+            headers = { "Accept" => "application/vnd.mcp+json" }
             headers["X-Bypass-CSRF"] = "#{bypass_csrf_key}"
-            test_context.patch uri, params: payload.merge(headers: headers)
+            test_context.patch uri, params: payload.merge(headers: headers), as: :mcp
+            parse_response(test_context)
           end
 
           def delete_resource(uri, payload = {})
             test_context = payload.delete(:test_context)
-            headers = { "Accept" => "application/json" }
+            headers = { "Accept" => "application/vnd.mcp+json" }
             headers["X-Bypass-CSRF"] = "#{bypass_csrf_key}"
-            test_context.delete uri, params: payload.merge(headers: headers)
+            test_context.delete uri, params: payload.merge(headers: headers), as: :mcp
+            parse_response(test_context)
           end
         RUBY
       end

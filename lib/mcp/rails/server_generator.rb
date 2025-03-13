@@ -2,8 +2,7 @@ module MCP
   module Rails
     class ServerGenerator
       class << self
-        def generate_files
-          config = MCP::Rails.configuration
+        def generate_files(config = MCP::Rails.configuration)
           base_url = config.base_url
           bypass_csrf_key = BypassKeyManager.create_new_key
 

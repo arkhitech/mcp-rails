@@ -8,5 +8,6 @@ gem "rubocop-rails-omakase", require: false
 gem "mcp-rb", git: "https://github.com/Tonksthebear/mcp-rb", branch: "nested-arguments"
 gem "rails", "8.0.0"
 gem "propshaft"
+gem "jbuilder"
 
 gemspec path: "../"

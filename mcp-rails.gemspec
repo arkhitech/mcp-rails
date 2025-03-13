@@ -15,6 +15,7 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency "mcp-rb", "~> 0.3.2"
   spec.add_dependency "httparty"
+  spec.add_development_dependency "jbuilder"
   spec.add_development_dependency "appraisal"
 
   spec.files = Dir.chdir(File.expand_path(__dir__)) do

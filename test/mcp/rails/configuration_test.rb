@@ -7,15 +7,16 @@ module MCP
         @temp_dir = Dir.mktmpdir
         @key_path = File.join(@temp_dir, "bypass_key.txt")
         @output_dir = File.join(@temp_dir, "server.rb")
+        @old_mcp_configuration = MCP::Rails.configuration
       end
 
       def teardown
         FileUtils.remove_entry @temp_dir
-        MCP::Rails.reset_configuration!
+        MCP::Rails.configuration = @old_mcp_configuration
       end
 
       test "provides default configuration values" do
-        config = MCP::Rails.configuration
+        config = MCP::Rails.reset_configuration!
         config.env_vars = [ "API_KEY", "ORGANIZATION_ID" ]
 
         assert_equal ::Rails.root.join("tmp", "mcp", "bypass_key.txt").to_s, config.bypass_key_path.to_s
