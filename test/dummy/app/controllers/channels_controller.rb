@@ -24,7 +24,9 @@ class ChannelsController < ApplicationController
     render json: resource_params, status: :created
   end
 
-  def update; end
+  def update
+    @instance_var = "instance variable"
+  end
 
   def destroy
     render json: { name: "json fallback test" }

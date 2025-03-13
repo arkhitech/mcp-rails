@@ -28,6 +28,7 @@ module MCP
         assert_response :success
         assert_equal mcp_response_body["content"], "json test"
         assert mcp_response_body.has_key?("mcpInvocation")
+        assert_equal mcp_response_body["var"], "instance variable"
       end
 
       test "explicit mcp views are prioritized over json" do

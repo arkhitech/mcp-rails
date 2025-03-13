@@ -32,7 +32,9 @@ module MCP
         template = lookup_context.find(action_name, lookup_context.prefixes, false, [], formats: [ :mcp, :json ], handlers: [ :jbuilder ])
         data = JbuilderTemplate.new(view_context, key_format: :camelize) do |json|
           json.key_format! camelize: :lower
-          json.instance_eval(template.source, template.identifier)
+          view_context.instance_exec(json) do |j|
+            eval(template.source, binding, template.identifier)
+          end
         end.attributes!
         # Wrap in status/data structure
         options[:json] = {
