@@ -129,7 +129,7 @@ module MCP
               if response_body["status"] == "error"
                 raise "From Rails Server: \#{response_body["message"]}"
               else
-                response_body.dig("data")
+                response_body.dig("data").to_json
               end
             else
               raise "None MCP response from Rails Server"
