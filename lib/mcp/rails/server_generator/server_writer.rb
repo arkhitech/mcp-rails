@@ -208,7 +208,7 @@ module MCP
 
           def get_resource(uri, arguments = {})
             test_context = arguments.delete(:test_context)
-            test_context.get uri, headers: { "Accept" => "application/vnd.mcp+json, application/json" }, as: :mcp
+            test_context.get uri, params: arguments, headers: { "Accept" => "application/vnd.mcp+json, application/json" }, as: :mcp
             parse_response(test_context)
           end
 
