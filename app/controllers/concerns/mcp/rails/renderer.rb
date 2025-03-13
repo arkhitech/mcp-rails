@@ -6,10 +6,10 @@ module MCP
 
       included do
         alias_method :original_render, :render
-        alias_method :render, :custom_render
+        alias_method :render, :mcp_render
       end
 
-      def custom_render(*args)
+      def mcp_render(*args)
         return original_render(*args) unless request.format.mcp?
 
         options = args.extract_options!

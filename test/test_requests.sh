@@ -15,4 +15,7 @@ echo '{"jsonrpc": "2.0", "method": "tools/call", "params": {"name": "index_chann
 
 # Call implicit render
 echo '{"jsonrpc": "2.0", "method": "tools/call", "params": {"name": "show_channels_messages", "arguments": {"id": "1"}}, "id": 3}'
+
+# Call fallback implicit render
+echo '{"jsonrpc": "2.0", "method": "tools/call", "params": {"name": "update_channels", "arguments": {"id": "1"}}, "id": 3}'
 } | ./test/dummy/tmp/mcp/server.rb

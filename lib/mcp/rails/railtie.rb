@@ -16,7 +16,7 @@ module Mcp
       end
 
       initializer "mcp-rails.mime_type" do
-        Mime::Type.register "application/vnd.mcp.json", :mcp
+        Mime::Type.register "application/vnd.mcp+json", :mcp# , [ "application/json" ]
       end
 
       initializer "mcp-rails.renderer" do

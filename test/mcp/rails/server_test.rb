@@ -43,12 +43,25 @@ module MCP
       end
 
       test "mcp renderer does not affect rendering of json" do
-        get channels_path(1), as: :json
+        get channels_path, as: :json
         assert_response :success
         assert_equal "[{\"name\":\"test\",\"user_ids\":[\"1\",\"2\"]}]", response.body
 
         get message_path(1), as: :json
         assert_equal "{\"content\":\"json test\"}", response.body
+      end
+
+      test "should respond with application/json for JSON request" do
+        get channels_path, as: :json
+        assert_response :success
+        assert_equal "application/json", response.media_type, "Expected application/json but got #{response.media_type}"
+        assert_equal "[{\"name\":\"test\",\"user_ids\":[\"1\",\"2\"]}]", response.body
+      end
+
+      test "should respond with application/vnd.mcp+json for MCP request" do
+        get channels_path, headers: { "Accept" => "application/vnd.mcp+json" }
+        assert_response :success
+        assert_equal({ "status"=>200, "data"=>[ { "name"=>"test", "userIds"=>[ "1", "2" ] } ] }, response.parsed_body)
       end
     end
   end

@@ -139,26 +139,26 @@ module MCP
           end
 
           def get_resource(uri, arguments = {})
-            response = HTTParty.get("#{base_uri}\#{uri}", query: transform_args(arguments), headers: { "Accept" => "application/vnd.mcp+json" })
+            response = HTTParty.get("#{base_uri}\#{uri}", query: transform_args(arguments), headers: { "Accept" => "application/vnd.mcp+json, application/json" })
             parse_response(response)
           end
 
           def post_resource(uri, payload = {})
-            headers = { "Accept" => "application/vnd.mcp+json" }
+            headers = { "Accept" => "application/vnd.mcp+json, application/json" }
             headers["X-Bypass-CSRF"] = "#{bypass_csrf_key}"
             response = HTTParty.post("#{base_uri}\#{uri}", body: transform_args(payload), headers: headers)
             parse_response(response)
           end
 
           def patch_resource(uri, payload = {})
-            headers = { "Accept" => "application/vnd.mcp+json" }
+            headers = { "Accept" => "application/vnd.mcp+json, application/json" }
             headers["X-Bypass-CSRF"] = "#{bypass_csrf_key}"
             response = HTTParty.patch("#{base_uri}\#{uri}", body: transform_args(payload), headers: headers)
             parse_response(response)
           end
 
           def delete_resource(uri, payload = {})
-            headers = { "Accept" => "application/vnd.mcp+json" }
+            headers = { "Accept" => "application/vnd.mcp+json, application/json" }
             headers["X-Bypass-CSRF"] = "#{bypass_csrf_key}"
             response = HTTParty.delete("#{base_uri}\#{uri}", body: transform_args(payload), headers: headers)
             parse_response(response)
@@ -208,13 +208,13 @@ module MCP
 
           def get_resource(uri, arguments = {})
             test_context = arguments.delete(:test_context)
-            test_context.get uri, headers: { "Accept" => "application/vnd.mcp.json" }, as: :mcp
+            test_context.get uri, headers: { "Accept" => "application/vnd.mcp+json, application/json" }, as: :mcp
             parse_response(test_context)
           end
 
-          def post_resource(uri, payload = {})
+          def post_resource(uri, payload = {}, headers = {})
             test_context = payload.delete(:test_context)
-            headers = { "Accept" => "application/vnd.mcp.json" }
+            headers = { "Accept" => "application/vnd.mcp+json, application/json" }
             headers["X-Bypass-CSRF"] = "#{bypass_csrf_key}"
             test_context.post uri, params: payload, headers: headers, as: :mcp
             parse_response(test_context)
@@ -222,7 +222,7 @@ module MCP
 
           def patch_resource(uri, payload = {})
             test_context = payload.delete(:test_context)
-            headers = { "Accept" => "application/vnd.mcp.json" }
+            headers = { "Accept" => "application/vnd.mcp+json, application/json" }
             headers["X-Bypass-CSRF"] = "#{bypass_csrf_key}"
             test_context.patch uri, params: payload.merge(headers: headers), as: :mcp
             parse_response(test_context)
@@ -230,7 +230,7 @@ module MCP
 
           def delete_resource(uri, payload = {})
             test_context = payload.delete(:test_context)
-            headers = { "Accept" => "application/vnd.mcp.json" }
+            headers = { "Accept" => "application/vnd.mcp+json, application/json" }
             headers["X-Bypass-CSRF"] = "#{bypass_csrf_key}"
             test_context.delete uri, params: payload.merge(headers: headers), as: :mcp
             parse_response(test_context)
