@@ -2,7 +2,7 @@
 
 **Enhance Rails routing and parameter handling for LLM agents with MCP (Model Context Protocol) integration.**
 
-`mcp-rails` is a Ruby on Rails gem that builds on top of the [mcp-rb](https://github.com/funwarioisii/mcp-rb) library to seamlessly integrate MCP (Model Context Protocol) servers into your Rails application. It enhances Rails routes by allowing you to tag them with MCP-specific metadata and generates a valid Ruby MCP server (in `tmp/server.rb`) that LLM agents, such as Goose, can connect to. Additionally, it provides a powerful way to define and manage strong parameters in your controllers, which doubles as both MCP server configuration and Rails strong parameter enforcement.
+`mcp-rails` is a Ruby on Rails gem that builds on top of the [mcp-rb](https://github.com/funwarioisii/mcp-rb) library to seamlessly integrate MCP (Model Context Protocol) servers into your Rails application. It enhances Rails routes by allowing you to tag them with MCP-specific metadata and generates a valid Ruby MCP server (in `tmp/mcp/server.rb`) that LLM agents, such as Goose, can connect to. Additionally, it provides a powerful way to define and manage strong parameters in your controllers, which doubles as both MCP server configuration and Rails strong parameter enforcement.
 
 This was inspired during the creation of [Gaggle](https://github.com/Tonksthebear/gaggle).
 
@@ -11,7 +11,7 @@ This was inspired during the creation of [Gaggle](https://github.com/Tonksthebea
 ## Features
 
 - **Tagged Routes**: Tag Rails routes with `mcp: true` or specific actions (e.g., `mcp: [:index, :create]`) to expose them to an MCP server.
-- **Automatic MCP Server Generation**: Generates a Ruby MCP server in `tmp/server.rb` for LLM agents to interact with your application.
+- **Automatic MCP Server Generation**: Generates a Ruby MCP server in `tmp/mcp/server.rb` for LLM agents to interact with your application.
 - **Parameter Definition**: Define permitted parameters in controllers with rich metadata (e.g., types, examples, required flags) that are used for both MCP server generation and Rails strong parameters.
 - **HTTP Bridge for LLM Agents**: Generates a ruby based MCP server to interact with your application through HTTP requests, ensuring LLM agents follow the same paths as human users.
 - **Environment Variable Integration**: Automatically includes specified environment variables in MCP tool calls.
@@ -145,7 +145,7 @@ The LLM will now provide the exact parameters you're used to with default rails 
   { channel: { name: "Channel Name", user_ids: ["1", "2"] } }
 ```
 
-- **MCP Server**: The generated `tmp/server.rb` will include these parameters, making them available to LLM agents.
+- **MCP Server**: The generated `tmp/mcp/server.rb` will include these parameters, making them available to LLM agents.
 - **Rails Strong Parameters**: Calling `resource_params` in your controller action automatically permits and fetches the defined parameters.
 
 ### 3. MCP Response Format
@@ -229,7 +229,7 @@ After tagging routes and defining parameters, run
 ```bash
   bin/rails mcp:rails:generate_server
 ```
-The MCP server will be generated in `tmp/server.rb`. The server.rb is an executable that attempts to find the closest Gemfile to the file and executes the server using that Gemfile.
+The MCP server will be generated in `tmp/mcp/server.rb`. The server.rb is an executable that attempts to find the closest Gemfile to the file and executes the server using that Gemfile.
 
 If any engines are registered, the server will be generated for each engine as well.
 
@@ -237,7 +237,7 @@ LLM agents can now connect to this server and interact with your application via
 
 For an agent like Goose, you can use this new server with
 ```
-goose session --with-extension "path_to/tmp/server.rb"
+goose session --with-extension "path_to/tmp/mcp/server.rb"
 ```
 ---
 
@@ -300,7 +300,7 @@ This approach allows you to verify that your MCP server correctly handles reques
 
 1. **Route Tagging**: The `mcp` option in your routes tells `mcp-rails` which endpoints to expose to the MCP server.
 2. **Parameter Definition**: The `permitted_params_for` block defines the structure and metadata of parameters, which are used to generate the MCP server's API and enforce strong parameters in Rails.
-3. **Server Generation**: `mcp-rails` leverages `mcp-rb` to create a Ruby MCP server in `tmp/server.rb`, translating tagged routes and parameters into an interface for LLM agents.
+3. **Server Generation**: `mcp-rails` leverages `mcp-rb` to create a Ruby MCP server in `tmp/mcp/server.rb`, translating tagged routes and parameters into an interface for LLM agents.
 4. **HTTP Integration**: The generated server converts MCP tool calls into HTTP requests, allowing you to reuse all of the same logic for interacting with your application.
 
 ---
@@ -361,11 +361,11 @@ end
 
 ### Generated MCP Server
 
-The `tmp/server.rb` file will include an MCP server that exposes `/channels` (GET) and `/channels` (POST) with the defined parameters, allowing an LLM agent to interact with your app.
+The `tmp/mcp/server.rb` file will include an MCP server that exposes `/channels` (GET) and `/channels` (POST) with the defined parameters, allowing an LLM agent to interact with your app.
 
 For use with something like [Goose](https://github.com/block/goose):
 ```
-goose session --with-extension "ruby path_to/tmp/server.rb"
+goose session --with-extension "ruby path_to/tmp/mcp/server.rb"
 ```
 ---
 
