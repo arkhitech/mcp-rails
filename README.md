@@ -1,6 +1,6 @@
 # MCP-Rails
 
-**Enhance Rails routing and parameter handling for LLM agents with MCP (Machine Control Protocol) integration.**
+**Enhance Rails routing and parameter handling for LLM agents with MCP (Model Context Protocol) integration.**
 
 `mcp-rails` is a Ruby on Rails gem that builds on top of the [mcp-rb](https://github.com/funwarioisii/mcp-rb) library to seamlessly integrate MCP (Model Context Protocol) servers into your Rails application. It enhances Rails routes by allowing you to tag them with MCP-specific metadata and generates a valid Ruby MCP server (in `tmp/server.rb`) that LLM agents, such as Goose, can connect to. Additionally, it provides a powerful way to define and manage strong parameters in your controllers, which doubles as both MCP server configuration and Rails strong parameter enforcement.
 
