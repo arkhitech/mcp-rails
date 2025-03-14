@@ -23,7 +23,7 @@ This was inspired during the creation of [Gaggle](https://github.com/Tonksthebea
 Add this line to your application's `Gemfile`:
 
 ```ruby
-gem 'mcp-rails', git: 'https://github.com/Tonksthebear/mcp-rails'
+gem 'mcp-rails'
 ```
 
 Then run:
