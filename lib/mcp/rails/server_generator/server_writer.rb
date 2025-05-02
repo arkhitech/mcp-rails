@@ -15,7 +15,7 @@ module MCP
           file.puts %(require "mcp")
           file.puts %(require "httparty")
           file.puts
-          file.puts helper_methods(base_url, bypass_csrf_key)
+          file.puts helper_methods(base_url, bypass_csrf_key, bearer_token)
           file.puts
 
           file.puts %(name "#{config.server_name}")
@@ -108,6 +108,10 @@ module MCP
         end
       end
 
+      def self.bearer_token
+        "Bearer #{ENV["MCP_API_KEY"]}" if ENV["MCP_API_KEY"]
+      end
+
       def self.generate_parameter(param, indent_level = 1)
         indent = "  " * indent_level
         name = param[:name].to_sym
@@ -137,7 +141,7 @@ module MCP
         end
       end
 
-      def self.helper_methods(base_uri, bypass_csrf_key)
+      def self.helper_methods(base_uri, bypass_csrf_key, bearer_token)
         return test_helper_methods(base_uri, bypass_csrf_key) if ::Rails.env.test?
         <<~RUBY
           def transform_args(args)
@@ -165,29 +169,30 @@ module MCP
             raise "Parsing JSON failed: \#{e.message}"
           end
 
+          def headers
+            headers = { "Accept" => "application/vnd.mcp+json, application/json" }
+            headers["X-Bypass-CSRF"] = "#{bypass_csrf_key}"
+            headers["Authorization"] = "#{bearer_token}"
+            headers
+          end
+
           def get_resource(uri, arguments = {})
-            response = HTTParty.get("#{base_uri}\#{uri}", query: transform_args(arguments), headers: { "Accept" => "application/vnd.mcp+json, application/json" })
+            response = HTTParty.get("#{base_uri}\#{uri}", query: transform_args(arguments), headers:)
             parse_response(response)
           end
 
           def post_resource(uri, payload = {})
-            headers = { "Accept" => "application/vnd.mcp+json, application/json" }
-            headers["X-Bypass-CSRF"] = "#{bypass_csrf_key}"
-            response = HTTParty.post("#{base_uri}\#{uri}", body: transform_args(payload), headers: headers)
+            response = HTTParty.post("#{base_uri}\#{uri}", body: transform_args(payload), headers:)
             parse_response(response)
           end
 
           def patch_resource(uri, payload = {})
-            headers = { "Accept" => "application/vnd.mcp+json, application/json" }
-            headers["X-Bypass-CSRF"] = "#{bypass_csrf_key}"
-            response = HTTParty.patch("#{base_uri}\#{uri}", body: transform_args(payload), headers: headers)
+            response = HTTParty.patch("#{base_uri}\#{uri}", body: transform_args(payload), headers:)
             parse_response(response)
           end
 
           def delete_resource(uri, payload = {})
-            headers = { "Accept" => "application/vnd.mcp+json, application/json" }
-            headers["X-Bypass-CSRF"] = "#{bypass_csrf_key}"
-            response = HTTParty.delete("#{base_uri}\#{uri}", body: transform_args(payload), headers: headers)
+            response = HTTParty.delete("#{base_uri}\#{uri}", body: transform_args(payload), headers:)
             parse_response(response)
           end
         RUBY

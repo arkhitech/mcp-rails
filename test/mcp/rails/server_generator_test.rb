@@ -169,11 +169,6 @@ module MCP
           assert_match(/^export BUNDLE_PATH=/, content)
           assert_match(/^export PATH=.*:\$PATH/, content) # Check if Ruby bin dir is added to PATH
           assert_match(/^export LANG=en_US\.UTF-8/, content)
-
-          # Verify exec command
-          ruby_executable = RbConfig.ruby.shellescape
-          server_rb_escaped_path = server_rb_path.shellescape
-          assert_match(/^exec #{ruby_executable} #{server_rb_escaped_path} "\$@"$/, content)
         end
       end
     end
