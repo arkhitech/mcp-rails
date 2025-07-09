@@ -4,13 +4,8 @@ module MCP
     module Renderer
       extend ActiveSupport::Concern
 
-      included do
-        alias_method :original_render, :render
-        alias_method :render, :mcp_render
-      end
-
-      def mcp_render(*args)
-        return original_render(*args) unless request.format.mcp?
+      def render(*args)
+        return super(*args) unless request.format.mcp?
 
         options = args.extract_options!
         if implicit_jbuilder_render?(options)
@@ -18,7 +13,7 @@ module MCP
         elsif options[:json] || options[:mcp]
           process_explicit_render(options)
         end
-        original_render(*args, options)
+        super(*args, options)
       end
 
       private

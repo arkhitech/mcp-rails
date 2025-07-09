@@ -5,7 +5,7 @@ module MCP
         routes.map do |route|
           app = route.app.app
 
-          if app.respond_to?(:routes) && app < ::Rails::Engine
+          if app.respond_to?(:routes) && app < ::Rails::Engine && app.app.respond_to?(:routes)
             new_prefix = [ prefix, route.path.spec.to_s ].join
             collect_routes(app.app.routes.routes, new_prefix, app)
           else
@@ -34,11 +34,12 @@ module MCP
           next if route.verb.downcase == "put"
 
           begin
-            controller_class = "#{route.defaults[:controller].camelize}Controller".constantize
+            controller_name = route.defaults[:controller].split("/").map(&:camelize).join("::") + "Controller"
+            controller_class = controller_name.constantize
             action = route.defaults[:action].to_sym
             params_def = controller_class.permitted_params(action)
-          rescue NameError
-            ::Rails.logger.warn("Controller not found for route: #{route.defaults[:controller]}")
+          rescue NameError => e
+            warn("Error for #{route.defaults[:controller]}:#{route.defaults[:action]}; #{e.message}")
             next
           end
 

@@ -3,7 +3,6 @@ module Mcp
     class Railtie < ::Rails::Railtie
       railtie_name "mcp-rails"
       gem_root = Gem::Specification.find_by_name("mcp-rails").gem_dir
-
       config.to_prepare do
         require File.join(gem_root, "app/controllers/concerns/mcp/rails/parameters")
         require File.join(gem_root, "app/controllers/concerns/mcp/rails/tool_descriptions")
@@ -13,6 +12,11 @@ module Mcp
         ActionController::Base.include(MCP::Rails::ToolDescriptions)
         ActionController::Base.include(MCP::Rails::ErrorHandling)
         ActionController::Base.include(MCP::Rails::Renderer)
+
+        ActionController::API.include(MCP::Rails::Parameters)
+        ActionController::API.include(MCP::Rails::ToolDescriptions)
+        ActionController::API.include(MCP::Rails::ErrorHandling)
+        ActionController::API.include(MCP::Rails::Renderer)
       end
 
       initializer "mcp-rails.mime_type" do
