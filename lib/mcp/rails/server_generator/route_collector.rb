@@ -20,11 +20,25 @@ module MCP
       end
 
       def self.process_routes(routes)
+        unique_tool_names = Set.new
         candidate_routes = routes.select do |wrapped_route|
           route = wrapped_route[:route]
           action = route.defaults[:action]&.to_s
           mcp = route.defaults[:mcp]
-          mcp == true || (mcp.is_a?(Array) && action&.in?(mcp.map(&:to_s)))
+          eligible = mcp == true || (mcp.is_a?(Array) && action&.in?(mcp.map(&:to_s)))
+
+          # ensure unique controller and action
+          if eligible
+            tool_name = "#{action}_#{route.defaults[:controller].parameterize}"
+            if unique_tool_names.exclude?(tool_name)
+              unique_tool_names << tool_name
+              true
+            else
+              false
+            end
+          else
+            false
+          end
         end
 
         candidate_routes.map do |wrapped_route|
@@ -49,8 +63,9 @@ module MCP
 
           description = controller_class.tool_description(action) || "Handles #{action} for #{route.defaults[:controller]}"
 
+          tool_name = "#{action}_#{route.defaults[:controller].parameterize}"
           {
-            tool_name: "#{action}_#{route.defaults[:controller].parameterize}",
+            tool_name: ,
             description: escape_for_ruby_string(description),
             method: route.verb.downcase.to_sym,
             path: full_path,
