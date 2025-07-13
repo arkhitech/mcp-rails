@@ -13,15 +13,16 @@ module MCP
 
           # Process main app routes
           main_app_routes = RouteCollector.process_routes(grouped_routes[nil] || [])
+          writer_class = config.use_fast_mcp ? FastServerWriter : ServerWriter
           if main_app_routes.any?
-            file_path = ServerWriter.write_server(
+            file_path = writer_class.write_server(
               main_app_routes,
               config.for_engine(nil),
               base_url,
               bypass_csrf_key
             )
             generated_files << file_path
-            ServerWriter.write_wrapper_script(config, file_path, nil)
+            writer_class.write_wrapper_script(config, file_path, nil)
             generated_files << file_path
           end
 

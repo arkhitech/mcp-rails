@@ -114,15 +114,15 @@ end
 
 In your controllers, use the `permitted_params_for` DSL to define parameters for MCP actions. These definitions serve a dual purpose: they configure the MCP server and enable strong parameter enforcement in Rails.
 
-Example:
+description:
 
 ```ruby
 class ChannelsController < ApplicationController
   # Define parameters for the :create action
   permitted_params_for :create do
     param :channel, required: true do
-      param :name, type: :string, example: "Channel Name", required: true
-      param :user_ids, type: :array, item_type: :string, example: ["1", "2"]
+      param :name, type: :string, description: "Channel Name", required: true
+      param :user_ids, type: :array, item_type: :string, description: ["1", "2"]
     end
   end
 
@@ -364,8 +364,8 @@ end
 class ChannelsController < ApplicationController
   permitted_params_for :create do
     param :channel, required: true do
-      param :name, type: :string, example: "General Chat", required: true
-      param :goose_ids, type: :array, example: ["goose-123", "goose-456"]
+      param :name, type: :string, description: "General Chat", required: true
+      param :goose_ids, type: :array, description: ["goose-123", "goose-456"]
     end
   end
 

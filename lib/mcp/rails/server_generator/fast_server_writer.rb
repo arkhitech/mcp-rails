@@ -1,6 +1,6 @@
 module MCP
   module Rails
-    class ServerGenerator::ServerWriter
+    class ServerGenerator::FastServerWriter
       def self.write_server(routes_data, config, base_url, bypass_csrf_key, engine = nil)
         # Get engine-specific configuration if available
         config = config.for_engine(engine)
@@ -12,25 +12,34 @@ module MCP
         File.open(file_path, "w") do |file|
           file.puts "#!/usr/bin/env ruby"
           file.puts
-          file.puts %(require "mcp")
+          file.puts %(require "fast_mcp")
           file.puts %(require "httparty")
           file.puts
           file.puts helper_methods(base_url, bypass_csrf_key, bearer_token)
           file.puts
 
-          file.puts %(name "#{config.server_name}")
-          file.puts %(version "#{config.server_version}")
-
+          file.puts %(# Create an MCP server)
+          file.puts %(server = FastMcp::Server.new(name: "#{config.server_name}", version: "#{config.server_version}")) 
           routes_data.each do |route|
-            file.puts %(tool "#{route[:tool_name].underscore}" do)
-            file.puts "  description \"#{route[:description].sub(/\//, ' ')}\""
-            generate_unique_parameters(route[:accepted_parameters]).each do |param|
-              file.puts param
-            end
-            file.puts route_block(route, config).lines.map { |line| "  #{line}" }.join
-            file.puts "end"
+            file.puts %(# Define a tool by inheriting from FastMcp::Tool)
+            tool_class_name = "#{route[:tool_name].underscore.camelize}Tool"
+            file.puts %(class #{tool_class_name} < FastMcp::Tool)
+              file.puts %( description \"#{route[:description].sub(/\//, ' ')}\")
+
+              file.puts %( arguments do)
+                generate_unique_parameters(route[:accepted_parameters], 2).each do |param|
+                  file.puts param
+                end
+              file.puts %( end)
+
+              file.puts route_block(route, config).lines.map { |line| "  #{line}" }.join
+            file.puts %(end)
             file.puts
+            file.puts %(server.register_tool(#{tool_class_name}))
           end
+          file.puts %(# Start the server)
+          file.puts %(server.start)
+
         end
 
         current_mode = File.stat(file_path).mode
@@ -99,12 +108,12 @@ module MCP
 
       def self.type_to_class(type)
         case type
-        when :string then "String"
-        when :integer then "Integer"
-        when :number then "Float"
-        when :boolean then "TrueClass"
-        when :array then "Array"
-        else "String"  # Default to String
+        when :string then "string"
+        when :integer then "integer"
+        when :number then "float"
+        when :boolean then "bool"
+        when :array then "array"
+        else "string"  # Default to String
         end
       end
 
@@ -117,32 +126,38 @@ module MCP
         unique_params.map { |np| generate_parameter(np, indent_level + 1) }
       end
 
+      # required(:text).filled(:string).description("Text to summarize")
+      # optional(:max_length).filled(:integer).description("Maximum length of summary")
       def self.generate_parameter(param, indent_level = 1)
         indent = "  " * indent_level
         name = param[:name].to_sym
         required = param[:required] ? ", required: true" : ""
-        description = param[:description] ? ", description: \"#{param[:description]}\"" : ""
+        param_name_wrapper = required ? "required" : "optional"
+        description = param[:description]&.gsub("\"", "\\\"")
 
         if param[:type] == :array
           if param[:item_type]
             # Scalar array: argument :name, Array, items: Type
-            type_str = "Array, items: #{type_to_class(param[:item_type])}"
-            "#{indent}argument :#{name}, #{type_str}#{required}#{description}"
+            type_str = type_to_class(param[:item_type])
+            # "#{indent}argument :#{name}, #{type_str}#{required}#{description}"
+            "#{indent}#{param_name_wrapper}(:#{name}).array(:#{type_str}).description(\"#{description}\")"
           elsif param[:nested]
             # Array of objects: argument :name, Array do ... end
             nested_params = generate_unique_parameters(param[:nested], indent_level + 1).join("\n")
-            "#{indent}argument :#{name}, Array#{required}#{description} do\n#{nested_params}\n#{indent}end"
+            # "#{indent}argument :#{name}, Array#{required}#{description} do\n#{nested_params}\n#{indent}end"
+            "#{indent}#{param_name_wrapper}(:#{name}).description(\"#{description}\").array(:hash) do\n#{nested_params}\n#{indent}end"
           else
             raise "Array parameter must have either item_type or nested parameters"
           end
         elsif param[:type] == :object && param[:nested]
           # Object: argument :name do ... end
           nested_params = generate_unique_parameters(param[:nested], indent_level + 1).join("\n")
-          "#{indent}argument :#{name}#{required}#{description} do\n#{nested_params}\n#{indent}end"
+          param_name_wrapper = required ? "required" : "optional"
+          "#{indent}#{param_name_wrapper}(:#{name}).description(\"#{description}\").hash do\n#{nested_params}\n#{indent}end"
         else
           # Scalar type: argument :name, Type
           type_str = type_to_class(param[:type])
-          "#{indent}argument :#{name}, #{type_str}#{required}#{description}"
+          "#{indent}#{param_name_wrapper}(:#{name}).filled(:#{type_str}).description(\"#{description}\")"
         end
       end
 
@@ -209,15 +224,22 @@ module MCP
           uri = uri.gsub(":#{url_parameter[:name]}", "\#{args[:#{url_parameter[:name]}]}")
         end
 
+        unique_params = route[:accepted_parameters].uniq { |p| p[:name].to_s }
+        function_params = unique_params.map do |param|
+          required = param[:required]
+          "#{param[:name]}: #{required ? "" : "nil"}"
+        end.join(", ")
+
         env_vars = config.env_vars.map do |var|
-          "args[:#{var.downcase}] = ENV['#{var}']"
+          "  args[:#{var.downcase}] = ENV['#{var}']"
         end.join("\n")
 
         method = route[:method].to_s.downcase
         helper_method = "#{method}_resource"
 
         <<~RUBY
-          call do |args|
+          def call(#{function_params})
+            args = {#{function_params}}
             #{env_vars}
             #{helper_method}("#{uri}", args)
           end

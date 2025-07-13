@@ -1,7 +1,7 @@
 class Channels::MessagesController < ApplicationController
   permitted_params_for :create do
     param :message, required: true do
-      param :content, type: :string, example: "Message Content", required: true
+      param :content, type: :string, description: "Message Content", required: true
     end
   end
 

@@ -135,7 +135,7 @@ module MCP::Rails::Parameters
       @params = []
     end
 
-    def param(name, type: nil, item_type: nil, example: nil, required: false, &block)
+    def param(name, type: nil, item_type: nil, description: nil, example: nil, required: false, &block)
       param_def = { name: name, required: required }
       if type == :array
         param_def[:type] = :array
@@ -156,7 +156,11 @@ module MCP::Rails::Parameters
       else
         param_def[:type] = type if type
       end
-      param_def[:example] = example if example
+      if description
+        param_def[:description] = description 
+      elsif example
+        param_def[:description] = "Example: #{example}"
+      end
       @params << param_def
     end
   end

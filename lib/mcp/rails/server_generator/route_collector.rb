@@ -83,7 +83,7 @@ module MCP
           required: param[:required]
         }
         structure[:item_type] = param[:item_type] if param[:item_type]  # Add item_type for scalar arrays
-        structure[:description] = escape_for_ruby_string(param[:example]) if param[:example]
+        structure[:description] = escape_for_ruby_string(param[:description]) if param[:description]
         structure[:nested] = param[:nested].map { |n| build_param_structure(n) } if param[:nested]
         structure
       end

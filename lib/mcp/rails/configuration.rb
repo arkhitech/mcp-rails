@@ -14,6 +14,7 @@ module MCP
 
       # Engine configurations
       attr_reader :engine_configurations
+      attr_accessor :use_fast_mcp
 
       def initialize
         # Server defaults

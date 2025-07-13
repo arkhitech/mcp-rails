@@ -1,7 +1,7 @@
 class SharedParametersController < ApplicationController
   # Test shared parameters
   shared_params :contact_info do
-    param :email, type: :string, example: "user@example.com"
+    param :email, type: :string, description: "user@example.com"
     param :phone, type: :string
   end
 
