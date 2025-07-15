@@ -131,7 +131,7 @@ module MCP
       def self.generate_parameter(param, indent_level = 1)
         indent = "  " * indent_level
         name = param[:name].to_sym
-        required = param[:required] ? ", required: true" : ""
+        required = param[:required]
         param_name_wrapper = required ? "required" : "optional"
         description = param[:description]&.gsub("\"", "\\\"")
 
@@ -174,44 +174,54 @@ module MCP
           end
 
           def parse_response(response)
-            response_body = JSON.parse(response.body)
-            case response_body
-            when Hash
-              if response_body["status"] == "error"
-                raise "From Rails Server: \#{response_body["message"]}"
-              else
-                response_body.dig("data").to_json
-              end
+            if response.success?
+              response.body
             else
-              raise "None MCP response from Rails Server"
+              response_body = JSON.parse(response.body) rescue response.body
+              case response_body
+              when Hash                
+                if response_body["errors"]
+                  response_body.merge({error_code: response.response.code}).to_json  
+                else
+                  {error_code: response.response.code}.to_json
+                end
+              when String
+                {error_code: response.response.code, error_message: response_body}.to_json
+              else
+                raise "None MCP response from Rails Server"
+              end
             end
           rescue => e
             raise "Parsing JSON failed: \#{e.message}"
           end
 
-          def headers
+          def http_headers
             headers = { "Accept" => "application/vnd.mcp+json, application/json" }
             headers["X-Bypass-CSRF"] = "#{bypass_csrf_key}"
-            headers["Authorization"] = #{bearer_token.present? ? "#{bearer_token}" : 'ENV["AUTHORIZATION"]'}
+            headers["Authorization"] = #{bearer_token.present? ? "Bearer #{bearer_token}" : 'ENV["AUTHORIZATION"]'}
             headers
           end
 
           def get_resource(uri, arguments = {})
+            headers = http_headers
             response = HTTParty.get("#{base_uri}\#{uri}", query: transform_args(arguments), headers:)
             parse_response(response)
           end
 
           def post_resource(uri, payload = {})
+            headers = http_headers
             response = HTTParty.post("#{base_uri}\#{uri}", body: transform_args(payload), headers:)
             parse_response(response)
           end
 
           def patch_resource(uri, payload = {})
+            headers = http_headers
             response = HTTParty.patch("#{base_uri}\#{uri}", body: transform_args(payload), headers:)
             parse_response(response)
           end
 
           def delete_resource(uri, payload = {})
+            headers = http_headers
             response = HTTParty.delete("#{base_uri}\#{uri}", body: transform_args(payload), headers:)
             parse_response(response)
           end
@@ -230,40 +240,51 @@ module MCP
           "#{param[:name]}: #{required ? "" : "nil"}"
         end.join(", ")
 
+        arg_params = unique_params.map do |param|
+          required = param[:required]
+          "#{param[:name]}:"
+        end.join(", ")
+
         env_vars = config.env_vars.map do |var|
-          "  args[:#{var.downcase}] = ENV['#{var}']"
-        end.join("\n")
+          "args[:#{var.downcase}] = ENV['#{var}'] if ENV['#{var}']"
+        end.join("\n  ")
 
         method = route[:method].to_s.downcase
         helper_method = "#{method}_resource"
 
         <<~RUBY
           def call(#{function_params})
-            args = {#{function_params}}
+            args = {#{arg_params}}
             #{env_vars}
-            #{helper_method}("#{uri}", args)
+            #{helper_method}("#{uri}", args.compact)
           end
         RUBY
       end
 
       def self.test_helper_methods(base_uri, bypass_csrf_key)
         <<~RUBY
-          def parse_response(test_context)
-            # Would be url: #{base_uri}
-            parsed_body = JSON.parse(test_context.response.body)
-            case parsed_body
-            when Hash
-              if parsed_body["status"] == "error"
-                raise "From Rails Server: \#{parsed_body["message"]}"
-              else
-                parsed_body.dig("data")
-              end
+          def parse_response(response)
+            if response.success?
+              response.body
             else
-              raise "None MCP response from Rails Server"
+              response_body = JSON.parse(response.body) rescue response.body
+              case response_body
+              when Hash                
+                if response_body["errors"]
+                  response_body.merge({error_code: response.response.code}).to_json  
+                else
+                  {error_code: response.response.code}.to_json
+                end
+              when String
+                {error_code: response.response.code, error_message: response_body}.to_json
+              else
+                raise "None MCP response from Rails Server"
+              end
             end
           rescue => e
             raise "Parsing JSON failed: \#{e.message}"
           end
+
 
           def get_resource(uri, arguments = {})
             test_context = arguments.delete(:test_context)
