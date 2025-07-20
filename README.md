@@ -24,7 +24,9 @@ Add this line to your application's `Gemfile`:
 
 ```ruby
 gem 'mcp-rails'
+gem 'mcp'
 ```
+If you want to use mcp-rb or fast_mcp gem, instead of mcp gem, then add those to your Gemfile. In that case set config.mcp_server_type to 'fast' or 'mcp-rb' in your initializers/mcp_rails.rb file.
 
 Then run:
 
@@ -55,6 +57,7 @@ MCP::Rails.configure do |config|
 
   # Base URL Configuration
   config.base_url = "http://localhost:3000"  # Default: Uses action_mailer.default_url_options
+  config.mcp_server_type = 'mcp' # Default: mcp, other options are 'fast' and 'mcp-rb'
 end
 ```
 

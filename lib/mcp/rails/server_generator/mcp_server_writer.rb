@@ -1,6 +1,6 @@
 module MCP
   module Rails
-    class ServerGenerator::FastServerWriter
+    class ServerGenerator::McpServerWriter
       def self.write_server(routes_data, config, base_url, bypass_csrf_key, engine = nil)
         # Get engine-specific configuration if available
         config = config.for_engine(engine)
@@ -12,34 +12,44 @@ module MCP
         File.open(file_path, "w") do |file|
           file.puts "#!/usr/bin/env ruby"
           file.puts
-          file.puts %(require "fast_mcp")
+          file.puts %(require "mcp")
+          file.puts %(require "mcp/tool")
+          file.puts %(require "mcp/tool/input_schema")
+          file.puts %(require "mcp/tool/response")
+          file.puts %(require "mcp/server/transports/stdio_transport")
           file.puts %(require "httparty")
           file.puts
           file.puts helper_methods(base_url, bypass_csrf_key, bearer_token)
           file.puts
-
-          file.puts %(# Create an MCP server)
-          file.puts %(server = FastMcp::Server.new(name: "#{config.server_name}", version: "#{config.server_version}")) 
+          file.puts %(tools = [])
           routes_data.each do |route|
-            file.puts %(# Define a tool by inheriting from FastMcp::Tool)
-            tool_class_name = "#{route[:tool_name].underscore.camelize}Tool"
-            file.puts %(class #{tool_class_name} < FastMcp::Tool)
-              file.puts %( description \"#{route[:description].sub(/\//, ' ')}\")
+            file.puts %(tool = MCP::Tool.define\()
+              file.puts %(  name: \"#{route[:tool_name]}\",)
+              file.puts %(  description: \"#{route[:description].sub(/\//, ' ')}\",) 
 
-              file.puts %( arguments do)
-                generate_unique_parameters(route[:accepted_parameters], 2).each do |param|
-                  file.puts param
-                end
-              file.puts %( end)
+              file.puts %(  input_schema: \{)
+                file.puts generate_unique_parameters(route[:accepted_parameters], 2)
+              file.puts %(  \})
 
-              file.puts route_block(route, config).lines.map { |line| "  #{line}" }.join
-            file.puts %(end)
+            file.puts route_block(route, config).lines.map { |line| "  #{line}" }.join
+            file.puts %(tools << tool)
             file.puts
-            file.puts %(server.register_tool(#{tool_class_name}))
           end
-          file.puts %(# Start the server)
-          file.puts %(server.start)
-
+          file.puts %(server_context = {})
+          env_vars = config.env_vars.map do |var|
+            "server_context[:#{var.downcase}] = ENV['#{var}'] if ENV['#{var}'] && ENV['#{var}'] != ''"
+          end.join("\n")
+          file.puts env_vars
+          file.puts %(# Create an MCP server)
+          file.puts %(server = MCP::Server.new\()
+          file.puts "  name: \"#{config.server_name}\"," 
+          file.puts "  version: \"#{config.server_version}\"," 
+          file.puts %(  server_context:,)
+          file.puts %(  tools:)
+          file.puts %(\)) 
+          file.puts %(# Create and start the transport)
+          file.puts %(transport = MCP::Server::Transports::StdioTransport.new(server))
+          file.puts %(transport.open)
         end
 
         current_mode = File.stat(file_path).mode
@@ -108,11 +118,13 @@ module MCP
 
       def self.type_to_class(type)
         case type
-        when :string then "string"
-        when :integer then "integer"
-        when :number then "float"
-        when :boolean then "bool"
         when :array then "array"
+        when :boolean then "boolean"
+        when :integer then "integer"
+        when :null then "null"
+        when :number then "number"
+        when :object then "object"
+        when :string then "string"
         else "string"  # Default to String
         end
       end
@@ -123,42 +135,48 @@ module MCP
 
       def self.generate_unique_parameters(params, indent_level = 1)
         unique_params = params.uniq { |p| p[:name].to_s }
-        unique_params.map { |np| generate_parameter(np, indent_level + 1) }
+        indent = "  " * indent_level
+        properties = []
+        required_fields = []
+        unique_params.each do |unique_param| 
+          property, required = generate_parameter(unique_param, indent_level + 1)
+          properties << property
+          required_fields << "\"#{unique_param[:name]}\"" if required
+        end
+        generated_unique_parameters = ["#{indent}properties: {\n#{properties.join(",\n")}\n#{indent}}"]
+        generated_unique_parameters << ",\n#{indent}required: [#{required_fields.join(', ')}]" if required_fields.any?
+        generated_unique_parameters.join("")
       end
-
       # required(:text).filled(:string).description("Text to summarize")
       # optional(:max_length).filled(:integer).description("Maximum length of summary")
       def self.generate_parameter(param, indent_level = 1)
         indent = "  " * indent_level
+        indent2 = "  " * (indent_level + 1)
         name = param[:name].to_sym
         required = param[:required]
-        param_name_wrapper = required ? "required" : "optional"
         description = param[:description]&.gsub("\"", "\\\"")
-
+        generated_parameter = ["#{indent}#{name}: { type: \"#{type_to_class(param[:type])}\""]
+        generated_parameter << ", description: \"#{description}\"" if description
+        
         if param[:type] == :array
           if param[:item_type]
             # Scalar array: argument :name, Array, items: Type
-            type_str = type_to_class(param[:item_type])
-            # "#{indent}argument :#{name}, #{type_str}#{required}#{description}"
-            "#{indent}#{param_name_wrapper}(:#{name}).array(:#{type_str}).description(\"#{description}\")"
+            generated_parameter << ", items: {\n#{indent2}type: \"#{type_to_class(param[:item_type])}\"\n#{indent}}" 
           elsif param[:nested]
-            # Array of objects: argument :name, Array do ... end
-            nested_params = generate_unique_parameters(param[:nested], indent_level + 1).join("\n")
-            # "#{indent}argument :#{name}, Array#{required}#{description} do\n#{nested_params}\n#{indent}end"
-            "#{indent}#{param_name_wrapper}(:#{name}).description(\"#{description}\").array(:hash) do\n#{nested_params}\n#{indent}end"
+            nested_params = generate_unique_parameters(param[:nested], indent_level + 1)
+            generated_parameter << ", items: {\n#{indent2}type: \"object\",\n#{nested_params}\n#{indent}}"  
           else
             raise "Array parameter must have either item_type or nested parameters"
           end
         elsif param[:type] == :object && param[:nested]
           # Object: argument :name do ... end
-          nested_params = generate_unique_parameters(param[:nested], indent_level + 1).join("\n")
-          param_name_wrapper = required ? "required" : "optional"
-          "#{indent}#{param_name_wrapper}(:#{name}).description(\"#{description}\").hash do\n#{nested_params}\n#{indent}end"
+          nested_params = generate_unique_parameters(param[:nested], indent_level + 1)
+          generated_parameter << ",\n#{nested_params}"
         else
           # Scalar type: argument :name, Type
-          type_str = type_to_class(param[:type])
-          "#{indent}#{param_name_wrapper}(:#{name}).filled(:#{type_str}).description(\"#{description}\")"
         end
+        generated_parameter << "}"
+        [generated_parameter.join(""), required]
       end
 
       def self.helper_methods(base_uri, bypass_csrf_key, bearer_token)
@@ -175,20 +193,20 @@ module MCP
 
           def parse_response(response)
             if response.success?
-              response.body
+              MCP::Tool::Response.new(response.body)
             else
               response_body = JSON.parse(response.body) rescue response.body
               case response_body
               when Hash                
                 if response_body["errors"]
-                  response_body.merge({error_code: response.response.code}).to_json  
+                  MCP::Tool::Response.new(response_body.merge({error_code: response.response.code}).to_json, is_error: true)
                 else
-                  {error_code: response.response.code}.to_json
+                  MCP::Tool::Response.new({error_code: response.response.code, error_messages: response_body}.to_json, is_error: true)
                 end
               when String
-                {error_code: response.response.code, error_message: response_body}.to_json
+                MCP::Tool::Response.new({error_code: response.response.code, error_message: response_body}.to_json, is_error: true)
               else
-                raise "None MCP response from Rails Server"
+                raise "Non MCP response from Rails Server"
               end
             end
           rescue => e
@@ -234,6 +252,13 @@ module MCP
           uri = uri.gsub(":#{url_parameter[:name]}", "\#{args[:#{url_parameter[:name]}]}")
         end
 
+        env_vars = config.env_vars.map do |var|
+          "args[:#{var.downcase}] = server_context['#{var}'] if server_context['#{var}'] && server_context['#{var}'] != ''"
+        end.join("\n  ")
+
+        method = route[:method].to_s.downcase
+        helper_method = "#{method}_resource"
+
         unique_params = route[:accepted_parameters].uniq { |p| p[:name].to_s }
         function_params = unique_params.map do |param|
           required = param[:required]
@@ -245,19 +270,12 @@ module MCP
           "#{param[:name]}:"
         end.join(", ")
 
-        env_vars = config.env_vars.map do |var|
-          "args[:#{var.downcase}] = ENV['#{var}'] if ENV['#{var}']"
-        end.join("\n  ")
-
-        method = route[:method].to_s.downcase
-        helper_method = "#{method}_resource"
-
         <<~RUBY
-          def call(#{function_params})
-            args = {#{arg_params}}
-            #{env_vars}
-            #{helper_method}("#{uri}", args.compact)
-          end
+        ) do |#{function_params}, server_context:|
+          args = {#{arg_params}}
+          #{env_vars}
+          #{helper_method}("#{uri}", args.compact)
+        end
         RUBY
       end
 
@@ -265,18 +283,18 @@ module MCP
         <<~RUBY
           def parse_response(response)
             if response.success?
-              response.body
+              MCP::Tool::Response.new(response.body)
             else
               response_body = JSON.parse(response.body) rescue response.body
               case response_body
               when Hash                
                 if response_body["errors"]
-                  response_body.merge({error_code: response.response.code}).to_json  
+                  MCP::Tool::Response.new(response_body.merge({error_code: response.response.code}).to_json, is_error: true)
                 else
-                  {error_code: response.response.code, error_messages: response_body}.to_json
+                  MCP::Tool::Response.new({error_code: response.response.code, error_messages: response_body}.to_json, is_error: true)
                 end
               when String
-                {error_code: response.response.code, error_message: response_body}.to_json
+                MCP::Tool::Response.new({error_code: response.response.code, error_message: response_body}.to_json, is_error: true)
               else
                 raise "Non MCP response from Rails Server"
               end

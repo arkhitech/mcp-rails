@@ -168,12 +168,12 @@ module MCP
                 if response_body["errors"]
                   response_body.merge({error_code: response.response.code}).to_json  
                 else
-                  {error_code: response.response.code}.to_json
+                  {error_code: response.response.code, error_messages: response_body}.to_json
                 end
               when String
                 {error_code: response.response.code, error_message: response_body}.to_json
               else
-                raise "None MCP response from Rails Server"
+                raise "Non MCP response from Rails Server"
               end
             end
           rescue => e
