@@ -25,26 +25,21 @@ module MCP
           route = wrapped_route[:route]
           action = route.defaults[:action]&.to_s
           mcp = route.defaults[:mcp]
-          eligible = mcp == true || (mcp.is_a?(Array) && action&.in?(mcp.map(&:to_s)))
+          mcp_resource = route.defaults[:mcp_resource]
 
-          # ensure unique controller and action
-          if eligible
-            tool_name = "#{action}_#{route.defaults[:controller].parameterize}"
-            if unique_tool_names.exclude?(tool_name)
-              unique_tool_names << tool_name
-              true
-            else
-              false
-            end
-          else
-            false
-          end
+          tool_name = "#{action}_#{route.defaults[:controller].to_s.parameterize}"
+          eligible = (!mcp_resource || route.defaults[:controller].include?(mcp_resource)) && ( 
+            mcp == true || (mcp.is_a?(Array) && action&.in?(mcp.map(&:to_s)))
+          ) && unique_tool_names.exclude?(tool_name)
+
+          unique_tool_names << tool_name
+          eligible
         end
 
         candidate_routes.map do |wrapped_route|
           route = wrapped_route[:route]
           next unless route.defaults[:controller] && route.defaults[:action]
-          next unless route.defaults[:action].to_s.in?(%w[create index show update destroy])
+          # next unless route.defaults[:action].to_s.in?(%w[create index show update destroy])
           next if route.verb.downcase == "put"
 
           begin

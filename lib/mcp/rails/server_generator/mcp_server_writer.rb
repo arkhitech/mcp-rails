@@ -157,7 +157,6 @@ module MCP
         description = param[:description]&.gsub("\"", "\\\"")
         generated_parameter = ["#{indent}#{name}: { type: \"#{type_to_class(param[:type])}\""]
         generated_parameter << ", description: \"#{description}\"" if description
-        
         if param[:type] == :array
           if param[:item_type]
             # Scalar array: argument :name, Array, items: Type
@@ -263,15 +262,15 @@ module MCP
         function_params = unique_params.map do |param|
           required = param[:required]
           "#{param[:name]}: #{required ? "" : "nil"}"
-        end.join(", ")
-
+        end        
+        function_params << "server_context:"
         arg_params = unique_params.map do |param|
           required = param[:required]
           "#{param[:name]}:"
         end.join(", ")
 
         <<~RUBY
-        ) do |#{function_params}, server_context:|
+        ) do |#{function_params.join(", ")}|
           args = {#{arg_params}}
           #{env_vars}
           #{helper_method}("#{uri}", args.compact)
