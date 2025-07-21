@@ -192,18 +192,18 @@ module MCP
 
           def parse_response(response)
             if response.success?
-              MCP::Tool::Response.new(response.body)
+              MCP::Tool::Response.new([{type: 'text', text: response.body}])
             else
               response_body = JSON.parse(response.body) rescue response.body
               case response_body
               when Hash                
                 if response_body["errors"]
-                  MCP::Tool::Response.new(response_body.merge({error_code: response.response.code}).to_json, is_error: true)
+                  MCP::Tool::Response.new([{type: 'text', text: response_body.merge({error_code: response.response.code}).to_json}], is_error: true)
                 else
-                  MCP::Tool::Response.new({error_code: response.response.code, error_messages: response_body}.to_json, is_error: true)
+                  MCP::Tool::Response.new([{type: 'text', text: {error_code: response.response.code, error_messages: response_body}.to_json}], is_error: true)
                 end
               when String
-                MCP::Tool::Response.new({error_code: response.response.code, error_message: response_body}.to_json, is_error: true)
+                MCP::Tool::Response.new([{type: 'text', text: {error_code: response.response.code, error_message: response_body}.to_json}], is_error: true)
               else
                 raise "Non MCP response from Rails Server"
               end
@@ -282,18 +282,18 @@ module MCP
         <<~RUBY
           def parse_response(response)
             if response.success?
-              MCP::Tool::Response.new(response.body)
+              MCP::Tool::Response.new([{type: 'text', text: response.body}])
             else
               response_body = JSON.parse(response.body) rescue response.body
               case response_body
               when Hash                
                 if response_body["errors"]
-                  MCP::Tool::Response.new(response_body.merge({error_code: response.response.code}).to_json, is_error: true)
+                  MCP::Tool::Response.new([{type: 'text', text: response_body.merge({error_code: response.response.code}).to_json}], is_error: true)
                 else
-                  MCP::Tool::Response.new({error_code: response.response.code, error_messages: response_body}.to_json, is_error: true)
+                  MCP::Tool::Response.new([{type: 'text', text: {error_code: response.response.code, error_messages: response_body}.to_json}], is_error: true)
                 end
               when String
-                MCP::Tool::Response.new({error_code: response.response.code, error_message: response_body}.to_json, is_error: true)
+                MCP::Tool::Response.new([{type: 'text', text: {error_code: response.response.code, error_message: response_body}.to_json}], is_error: true)
               else
                 raise "Non MCP response from Rails Server"
               end
@@ -301,7 +301,6 @@ module MCP
           rescue => e
             raise "Parsing JSON failed: \#{e.message}"
           end
-
 
           def get_resource(uri, arguments = {})
             test_context = arguments.delete(:test_context)
