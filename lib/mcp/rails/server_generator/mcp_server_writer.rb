@@ -198,12 +198,12 @@ module MCP
               case response_body
               when Hash                
                 if response_body["errors"]
-                  MCP::Tool::Response.new([{type: 'text', text: response_body.merge({error_code: response.response.code}).to_json}], is_error: true)
+                  MCP::Tool::Response.new([{type: 'text', text: response_body.merge({error_code: response.response.code}).to_json}], true)
                 else
-                  MCP::Tool::Response.new([{type: 'text', text: {error_code: response.response.code, error_messages: response_body}.to_json}], is_error: true)
+                  MCP::Tool::Response.new([{type: 'text', text: {error_code: response.response.code, error_messages: response_body}.to_json}], true)
                 end
               when String
-                MCP::Tool::Response.new([{type: 'text', text: {error_code: response.response.code, error_message: response_body}.to_json}], is_error: true)
+                MCP::Tool::Response.new([{type: 'text', text: {error_code: response.response.code, error_message: response_body}.to_json}], true)
               else
                 raise "Non MCP response from Rails Server"
               end
@@ -252,7 +252,7 @@ module MCP
         end
 
         env_vars = config.env_vars.map do |var|
-          "args[:#{var.downcase}] = server_context['#{var}'] if server_context['#{var}'] && server_context['#{var}'] != ''"
+          "args[:#{var.downcase}] = server_context[:#{var.downcase}] if server_context[:#{var.downcase}] && server_context[:#{var.downcase}] != ''"
         end.join("\n  ")
 
         method = route[:method].to_s.downcase
@@ -288,12 +288,12 @@ module MCP
               case response_body
               when Hash                
                 if response_body["errors"]
-                  MCP::Tool::Response.new([{type: 'text', text: response_body.merge({error_code: response.response.code}).to_json}], is_error: true)
+                  MCP::Tool::Response.new([{type: 'text', text: response_body.merge({error_code: response.response.code}).to_json}], true)
                 else
-                  MCP::Tool::Response.new([{type: 'text', text: {error_code: response.response.code, error_messages: response_body}.to_json}], is_error: true)
+                  MCP::Tool::Response.new([{type: 'text', text: {error_code: response.response.code, error_messages: response_body}.to_json}], true)
                 end
               when String
-                MCP::Tool::Response.new([{type: 'text', text: {error_code: response.response.code, error_message: response_body}.to_json}], is_error: true)
+                MCP::Tool::Response.new([{type: 'text', text: {error_code: response.response.code, error_message: response_body}.to_json}], true)
               else
                 raise "Non MCP response from Rails Server"
               end
