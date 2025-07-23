@@ -58,6 +58,8 @@ MCP::Rails.configure do |config|
   # Base URL Configuration
   config.base_url = "http://localhost:3000"  # Default: Uses action_mailer.default_url_options
   config.mcp_server_type = 'mcp' # Default: mcp, other options are 'fast' and 'mcp-rb'
+  config.mcp_exception_reporter = 'Sentry' # Default: none, other options are 'Sentry' and 'Bugsnag'
+  config.use_figaro = true # Default: none
 end
 ```
 

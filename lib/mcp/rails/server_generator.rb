@@ -13,7 +13,7 @@ module MCP
 
           # Process main app routes
           main_app_routes = RouteCollector.process_routes(grouped_routes[nil] || [])
-          writer_class = (config.mcp_server_type && config.mcp_server_type != 'mcp') ? (config.mcp_server_type == 'fast' ? FastServerWriter : ServerWriter) : McpServerWriter
+          writer_class = (config.mcp_server_type && config.mcp_server_type != 'mcp') ? (config.mcp_server_type == 'fast' ? FastServerWriter : McpRbServerWriter) : McpServerWriter
           if main_app_routes.any?
             file_path = writer_class.write_server(
               main_app_routes,

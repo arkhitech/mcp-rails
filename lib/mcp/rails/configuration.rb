@@ -15,6 +15,8 @@ module MCP
       # Engine configurations
       attr_reader :engine_configurations
       attr_accessor :mcp_server_type
+      attr_accessor :mcp_exception_reporter
+      attr_accessor :use_figaro
 
       def initialize
         # Server defaults

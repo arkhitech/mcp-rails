@@ -1,6 +1,6 @@
 module MCP
   module Rails
-    class ServerGenerator::McpServerWriter
+    class ServerGenerator::McpServerWriter < ServerGenerator::ServerWriter
       def self.write_server(routes_data, config, base_url, bypass_csrf_key, engine = nil)
         # Get engine-specific configuration if available
         config = config.for_engine(engine)
@@ -12,11 +12,27 @@ module MCP
         File.open(file_path, "w") do |file|
           file.puts "#!/usr/bin/env ruby"
           file.puts
+          file.puts %(require "figjam/application")
+          file.puts %(Figjam::Application.new\()
+          file.puts %(  path: "./config/application.yml")
+          file.puts %(\).load)
           file.puts %(require "mcp")
           file.puts %(require "mcp/tool")
           file.puts %(require "mcp/tool/input_schema")
           file.puts %(require "mcp/tool/response")
           file.puts %(require "mcp/server/transports/stdio_transport")
+          if config.use_figaro
+            file.puts %(require "figjam")
+            file.puts %(require "./config/initializers/figaro.rb")
+          end
+          if config.mcp_exception_reporter
+            if config.mcp_exception_reporter == 'Bugsnag'
+              file.puts %(require "config/initializers/bugsnag.rb")
+            else #if config.mcp_exception_reporter == 'Sentry'
+              file.puts %(require "sentry-ruby")
+              file.puts %(require "./config/initializers/sentry.rb")
+            end
+          end
           file.puts %(require "httparty")
           file.puts
           file.puts helper_methods(base_url, bypass_csrf_key, bearer_token)
@@ -35,21 +51,7 @@ module MCP
             file.puts %(tools << tool)
             file.puts
           end
-          file.puts %(server_context = {})
-          env_vars = config.env_vars.map do |var|
-            "server_context[:#{var.downcase}] = ENV['#{var}'] if ENV['#{var}'] && ENV['#{var}'] != ''"
-          end.join("\n")
-          file.puts env_vars
-          file.puts %(# Create an MCP server)
-          file.puts %(server = MCP::Server.new\()
-          file.puts "  name: \"#{config.server_name}\"," 
-          file.puts "  version: \"#{config.server_version}\"," 
-          file.puts %(  server_context:,)
-          file.puts %(  tools:)
-          file.puts %(\)) 
-          file.puts %(# Create and start the transport)
-          file.puts %(transport = MCP::Server::Transports::StdioTransport.new(server))
-          file.puts %(transport.open)
+          write_server_setup(file, config)
         end
 
         current_mode = File.stat(file_path).mode
@@ -59,61 +61,44 @@ module MCP
         file_path
       end
 
-      def self.write_wrapper_script(config, server_rb_path, engine = nil)
-        # Get engine-specific configuration if available
-        config = config.for_engine(engine)
-
-        server_rb = engine ? "#{config.server_name}_server.rb" : "server.rb"
-        wrapper_file_name = engine ? "#{config.server_name}_server.sh" : "server.sh"
-        wrapper_file_path = File.join(config.output_directory.to_s, wrapper_file_name)
-        FileUtils.mkdir_p(File.dirname(wrapper_file_path))
-
-        # Determine paths and environment variables
-        bundle_gemfile = ENV["BUNDLE_GEMFILE"] || self.find_nearest_gemfile(config.output_directory.to_s) || ""
-        gem_home = Gem.paths.home
-        gem_path = Gem.paths.path.join(":")
-        bundle_path = ENV["BUNDLE_PATH"] || gem_home # Use BUNDLE_PATH if set, else default to GEM_HOME
-        ruby_executable = RbConfig.ruby # Get the path to the current Ruby executable
-
-        # Construct the wrapper script content
-        script_content = <<~SHELL
-          #!/bin/bash
-
-          export BUNDLE_GEMFILE=#{bundle_gemfile.shellescape}
-          export GEM_HOME=#{gem_home.shellescape}
-          export GEM_PATH=#{gem_path.shellescape}
-          export BUNDLE_PATH=#{bundle_path.shellescape}
-          export PATH=#{File.dirname(ruby_executable).shellescape}:$PATH
-          export LANG=en_US.UTF-8
-
-          DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-          exec "#{ruby_executable.shellescape}" "${DIR}/#{server_rb}" "$@"
-        SHELL
-
-        # Write the script file
-        File.open(wrapper_file_path, "w") do |file|
-          file.puts script_content
+      def self.write_server_setup(file, config)
+        file.puts %(server_context = {})
+        env_vars = config.env_vars.map do |var|
+          "server_context[:#{var.downcase}] = ENV['#{var}'] if ENV['#{var}'] && ENV['#{var}'] != ''"
+        end.join("\n")
+        file.puts env_vars
+        file.puts %(# Create an MCP server)
+        file.puts %(server = MCP::Server.new\()
+        file.puts "  name: \"#{config.server_name}\"," 
+        file.puts "  version: \"#{config.server_version}\"," 
+        file.puts %(  server_context:,)
+        file.puts %(  tools:)
+        file.puts %(\)) 
+        
+        if config.mcp_exception_reporter
+          file.puts %(MCP.configure do |config|)
+          file.puts %(  config.exception_reporter = ->(exception, server_context) {)
+          file.puts %(    # Your exception reporting logic here)
+          if config.mcp_exception_reporter == 'Bugsnag'
+            file.puts %(    Bugsnag.notify(exception) do |report|)
+            file.puts %(      report.add_metadata(:model_context_protocol, server_context))            
+            file.puts %(    end)
+          else #if config.mcp_exception_reporter == 'Sentry'
+            file.puts %(    Sentry.capture_exception(exception) do |scope|)
+            file.puts %(      scope.set_context(:model_context_protocol, server_context))
+            file.puts %(    end)
+          end
+          file.puts %(  })
+          file.puts %(end)
         end
 
-        # Make the script executable
-        current_mode = File.stat(wrapper_file_path).mode
-        new_mode = current_mode | 0111 # Add execute (u+x, g+x, o+x)
-        File.chmod(new_mode, wrapper_file_path)
-
-        wrapper_file_path
-      end
-
-      def self.find_nearest_gemfile(start_dir)
-        current_dir = File.expand_path(start_dir)
-        loop do
-          gemfile = File.join(current_dir, "Gemfile")
-          return gemfile if File.exist?(gemfile)
-          parent_dir = File.dirname(current_dir)
-          break if parent_dir == current_dir # Reached root (e.g., "/")
-          current_dir = parent_dir
-        end
-        nil # No Gemfile found
+        # file.puts %(  config.instrumentation_callback = ->(data) {)
+        # file.puts %(    puts "Got instrumentation data #{data.inspect}")
+        # file.puts %(  })
+        # file.puts %(end)         
+        file.puts %(# Create and start the transport)
+        file.puts %(transport = MCP::Server::Transports::StdioTransport.new(server))
+        file.puts %(transport.open)
       end
 
       def self.type_to_class(type)
@@ -127,10 +112,6 @@ module MCP
         when :string then "string"
         else "string"  # Default to String
         end
-      end
-
-      def self.bearer_token
-        "Bearer #{ENV["MCP_API_KEY"]}" if ENV["MCP_API_KEY"]
       end
 
       def self.generate_unique_parameters(params, indent_level = 1)
