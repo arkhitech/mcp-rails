@@ -34,7 +34,7 @@ module MCP
             next unless engine_routes.any?
 
             engine_config = config.for_engine(engine)
-            file_path = ServerWriter.write_server(
+            file_path = writer_class.write_server(
               engine_routes,
               engine_config,
               base_url,
@@ -42,7 +42,7 @@ module MCP
               engine
             )
             generated_files << file_path
-            ServerWriter.write_wrapper_script(config, file_path, engine)
+            writer_class.write_wrapper_script(config, file_path, engine)
             generated_files << file_path
           end
 
