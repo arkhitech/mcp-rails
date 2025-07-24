@@ -32,7 +32,7 @@ module MCP
             mcp == true || (mcp.is_a?(Array) && action&.in?(mcp.map(&:to_s)))
           ) && unique_tool_names.exclude?(tool_name)
 
-          unique_tool_names << tool_name
+          unique_tool_names << tool_name if eligible
           eligible
         end
 
