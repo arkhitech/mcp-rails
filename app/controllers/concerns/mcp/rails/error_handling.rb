@@ -20,6 +20,6 @@ module MCP::Rails::ErrorHandling
   end
 
   def mcp_request?
-    request.format == :mcp || request.accept.include?("application/vnd.mcp+json")
+    request.format == :mcp || request.accept&.include?("application/vnd.mcp+json")
   end
 end
