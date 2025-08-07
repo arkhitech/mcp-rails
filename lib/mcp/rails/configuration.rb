@@ -76,6 +76,13 @@ module MCP
           config.instance_variable_set(:@env_vars, (self.env_vars + engine_config.env_vars).uniq)
         end
       end
+      
+      def for_server(server_name)
+        dup.tap do |config|
+          config.server_name = server_name
+          config.instance_variable_set(:@env_vars, self.env_vars)
+        end
+      end
     end
 
     class EngineConfiguration

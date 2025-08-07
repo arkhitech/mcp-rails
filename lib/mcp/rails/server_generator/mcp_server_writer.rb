@@ -1,11 +1,8 @@
 module MCP
   module Rails
     class ServerGenerator::McpServerWriter < ServerGenerator::ServerWriter
-      def self.write_server(routes_data, config, base_url, bypass_csrf_key, engine = nil)
-        # Get engine-specific configuration if available
-        config = config.for_engine(engine)
-
-        file_name = engine ? "#{config.server_name}_server.rb" : "server.rb"
+      def self.write_server(routes_data, config, base_url, bypass_csrf_key)
+        file_name = "#{config.server_name}_server.rb"
         file_path = File.join(config.output_directory.to_s, file_name)
         FileUtils.mkdir_p(File.dirname(file_path))
 

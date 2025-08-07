@@ -1,12 +1,9 @@
 module MCP
   module Rails
     class ServerGenerator::ServerWriter
-      def self.write_wrapper_script(config, server_rb_path, engine = nil)
-        # Get engine-specific configuration if available
-        config = config.for_engine(engine)
-
-        server_rb = engine ? "#{config.server_name}_server.rb" : "server.rb"
-        wrapper_file_name = engine ? "#{config.server_name}_server.sh" : "server.sh"
+      def self.write_wrapper_script(config, server_rb_path)
+        server_rb = "#{config.server_name}_server.rb"
+        wrapper_file_name = "#{config.server_name}_server.sh"
         wrapper_file_path = File.join(config.output_directory.to_s, wrapper_file_name)
         FileUtils.mkdir_p(File.dirname(wrapper_file_path))
 
